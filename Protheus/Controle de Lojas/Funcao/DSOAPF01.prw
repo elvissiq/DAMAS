@@ -112,6 +112,15 @@ Static Function fConsultEst(pCodProd,pLocPad)
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
                 nSaldo  := Val(oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:SALDOFISICO'))
+                If !Empty(nSaldo)
+                    DBSelectArea("SB2")
+                    If SB2->(MSSeek(xFilial("SB2") + cCodProd + cLocEstoq))
+                        If SaldoSB2() != nSaldo
+                            RecLock("SB2",.F.)
+                            SB2->(MSUnlock())
+                        EndIF 
+                    EndIF
+                EndIF 
             Endif
 
         EndIf
