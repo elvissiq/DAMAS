@@ -13,7 +13,7 @@ depois de fechar a operação realizada neste.
     MT103FIM()
     @obs https://tdn.totvs.com/pages/releaseview.action?pageId=6085406
 @Historico
-    13/03/2024 - Desenvolvimento da rotina - Elvis Siqueira
+    10/06/2024 - Desenvolvimento da rotina - Elvis Siqueira
 /*/
 
 User Function MT103FIM()
@@ -21,7 +21,7 @@ User Function MT103FIM()
 
     If PARAMIXB[1] == 3 .and. PARAMIXB[2] == 1
     
-        U_DSOAPF01() //Envia a Nota Fiscal de Entrada para o TOTVS Corpore RM
+        U_DSOAPF01(,,"MovMovCopiaReferenciaData") //Envia a Nota Fiscal de Entrada para o TOTVS Corpore RM
 
     EndIf
 

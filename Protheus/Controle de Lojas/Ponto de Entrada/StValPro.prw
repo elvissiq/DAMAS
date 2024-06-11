@@ -7,7 +7,7 @@ Função para validar se um determinado item poderá ser registrado no PDV
 @param   	PARAMIXB
 @author     Elvis Siqueira
 @version    P12
-@since      01/04/2024
+@since      10/06/2024
 @return     lRet
 /*/
 //------------------------------------------------------------------------------
@@ -24,7 +24,7 @@ User Function StValPro()
 	Private nSaldo   := 0
 	Private lErIntRM := .F.
 
-	U_DSOAPF01(cCodProd,cLocPad)
+	U_DSOAPF01(cCodProd,cLocPad,"RealizarConsultaSQL")
 
 	If lErIntRM //Caso ocorra erro na integração com o RM, consulta o estoque local.
 		DBSelectArea("SB2")
