@@ -157,6 +157,7 @@ Static Function fEnvNFeVend()
     Local cResult   := ""
     Local cLocEstoq := SuperGetMV("MV_LOCPAD")
     Local cIDMovRet := ""
+    Local aRetCons  := {}
 
     DBSelectArea("SL2")
     IF SL2->(MsSeek(SL1->L1_FILIAL + SL1->L1_NUM ))
@@ -450,10 +451,17 @@ Static Function fEnvNFeVend()
                 cIDMovRet  := SubStr(oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult'),;
                                      At(";",(oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult')))+1)
                 
-                If !Empty(cIDMovRet) .AND. SF1->(FieldPos("L1_XIDMOV") > 0)
-                    RecLock("SF1",.F.)
+                If !Empty(cIDMovRet) .AND. SL1->(FieldPos("L1_XIDMOV") > 0)
+                    RecLock("SL1",.F.)
                         SL1->L1_XIDMOV := cIDMovRet 
-                    SF1->(MSUnlock())
+                    SL1->(MSUnlock())
+                    aRetCons := fnConsultBX(cIDMovRet)
+                    If Len(aRetCons) > 0
+                        RecLock("SL1",.F.)
+                            SL1->L1_XIDLAN := aRetCons[2]
+                            SL1->L1_XIDBX  := aRetCons[3]
+                        SL1->(MSUnlock())
+                    EndIF 
                 EndIF 
                 fnGrvLog(cEndPoint,cBody,cResult,"","SL1 - "+SL1->L1_NUM,"Inclusao","Integracao NFC-e")
             Endif
@@ -818,6 +826,13 @@ Static Function fEnvNFeDev()
                     RecLock("SF1",.F.)
                         SF1->F1_XIDMOV := cIDMovRet 
                     SF1->(MSUnlock())
+                    aRetCons := fnConsultBX(cIDMovRet)
+                    If Len(aRetCons) > 0
+                        RecLock("SF1",.F.)
+                            SF1->F1_XIDLAN := aRetCons[2]
+                            SF1->F1_XIDBX  := aRetCons[3]
+                        SF1->(MSUnlock())
+                    EndIF
                 EndIF 
                 fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),"SF1 - "+SF1->F1_DOC,"Inclusao","Integracao NF Devolucao")
             Endif
@@ -839,7 +854,6 @@ Static Function fCanFinan()
     Local cPath     := "/wsFormulaVisual/MEX?wsdl"
     Local cBody     := ""
     Local cResult   := ""
-    Local cIDMovRet := ""
     Local cDataCanc := ""
     Local cIDBaixa  := ""
     Local cIDLan    := ""
@@ -848,11 +862,13 @@ Static Function fCanFinan()
     If Alltrim(FunName()) == "MATA103"
         cDataCanc := FWTimeStamp(3, dDataBase , Time() )
         cDocCanc  := "SF1 - NF: " + Alltrim(SF1->F1_DOC) + " Serie: "+Alltrim(SF1->F1_SERIE)
-        cIDLan    := SF1->F1_XIDMOV
+        cIDLan    := SF1->F1_XIDLAN
+        cIDBaixa  := SF1->F1_XIDBX
     ElseIF Alltrim(FunName()) == "LOJA701"
         cDataCanc := FWTimeStamp(3, SLX->LX_DTMOVTO , SLX->LX_HORA )
         cDocCanc  := "SLX - Cupom: " + Alltrim(SLX->LX_CUPOM) + " Serie: "+Alltrim(SLX->LX_SERIE)
-        cIDLan    := SLX->LX_XIDMOV
+        cIDLan    := SLX->LX_XIDLAN
+        cIDBaixa  := SLX->LX_XIDBX
     EndIF
 
     cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
@@ -1056,9 +1072,7 @@ Static Function fCanFinan()
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
-                cIDMovRet  := SubStr(oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult'),;
-                                     At(";",(oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult')))+1)
-                 
+
                 fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),cDocCanc,"Cancelamento","Integracao de Cancelamento")
             Endif
 
@@ -1079,7 +1093,6 @@ Static Function fCanMovim()
     Local cPath     := "/wsFormulaVisual/MEX?wsdl"
     Local cBody     := ""
     Local cResult   := ""
-    Local cIDMovRet := ""
     Local cDataCanc := ""
     Local cIDBaixa  := ""
     Local cIDLan    := ""
@@ -1088,11 +1101,13 @@ Static Function fCanMovim()
     If Alltrim(FunName()) == "MATA103"
         cDataCanc := FWTimeStamp(3, dDataBase , Time() )
         cDocCanc  := "SF1 - NF: " + Alltrim(SF1->F1_DOC) + " Serie: "+Alltrim(SF1->F1_SERIE)
-        cIDLan    := SF1->F1_XIDMOV
+        cIDLan    := SFT->FT_XIDLAN
+        cIDBaixa  := SFT->FT_XIDBX
     ElseIF Alltrim(FunName()) == "LOJA701"
         cDataCanc := FWTimeStamp(3, SLX->LX_DTMOVTO , SLX->LX_HORA )
         cDocCanc  := "SLX - Cupom: " + Alltrim(SLX->LX_CUPOM) + " Serie: "+Alltrim(SLX->LX_SERIE)
-        cIDLan    := SLX->LX_XIDMOV
+        cIDLan    := SLX->LX_XIDLAN
+        cIDBaixa  := SLX->LX_XIDBX
     EndIF
 
     cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
@@ -1295,10 +1310,7 @@ Static Function fCanMovim()
                 fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),cDocCanc,"Cancelamento","Integracao de Cancelamento")
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
-                oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
-                cIDMovRet  := SubStr(oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult'),;
-                                     At(";",(oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult')))+1)
-                 
+                oXml:xPathRegisterNs("ns1", "http://www.totvs.com/") 
                 fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),cDocCanc,"Cancelamento","Integracao de Cancelamento")
             Endif
 
@@ -1306,6 +1318,79 @@ Static Function fCanMovim()
     EndIF
 
 Return
+
+//-----------------------------------------------------------------------------
+/*/{Protheus.doc} fnConsultBX
+Envelope de consulta RealizarConsultaSQL no RM
+/*/
+//-----------------------------------------------------------------------------
+
+Static Function fnConsultBX(pIDMov)
+
+    Local oWsdl as Object
+    Local oXml as Object 
+    Local cPath     := "/wsConsultaSQL/MEX?wsdl"
+    Local cBody     := ""
+    Local cResult   := ""
+    Local aRet      := {}
+
+    cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
+    cBody += '  <soapenv:Header/> '
+    cBody += '  <soapenv:Body> '
+    cBody += '      <tot:RealizarConsultaSQL> '
+    cBody += '          <tot:codSentenca>wsConsultaBaixa</tot:codSentenca> '
+    cBody += '          <tot:codColigada>0</tot:codColigada> '
+    cBody += '          <tot:codSistema>T</tot:codSistema> '
+    cBody += '          <tot:parameters>CODCOLIGADA='+cCodEmp+';IDMOV='+pIDMov+'</tot:parameters> '
+    cBody += '      </tot:RealizarConsultaSQL> '
+    cBody += '  </soapenv:Body> '
+    cBody += ' </soapenv:Envelope> '
+
+    oWsdl := TWsdlManager():New()
+    oWsdl:nTimeout         := 120
+    oWsdl:lSSLInsecure     := .T.
+    oWsdl:lProcResp        := .T.
+    oWsdl:bNoCheckPeerCert := .T.
+    oWSDL:lUseNSPrefix     := .T.
+    oWsdl:lVerbose         := .T.
+    
+    If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
+        STFMessage("ItemRegistered","STOP","Error: " + oWsdl:cError)
+        lErIntRM := .T.
+    Else
+
+        oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
+
+        If !oWsdl:SendSoapMsg( cBody )
+            STFMessage("ItemRegistered","STOP","Falha no objeto XML retornado pelo TOTVS Corpore RM : "+oWsdl:cError)
+            fnGrvLog(cEndPoint,cBody,"",oWsdl:cError,"Consulta Baixa ID Mov: "+ pIDMov,"Consulta","Integracao Estoque")
+            lErIntRM := .T.
+            Return
+        Else
+            cResult := oWsdl:GetSoapResponse()
+            cResult := StrTran(cResult, "&lt;", "<")
+            cResult := StrTran(cResult, "&gt;&#xD;", ">")
+            cResult := StrTran(cResult, "&gt;", ">")
+            oXml := TXmlManager():New()
+
+            If !oXML:Parse( cResult )
+                STFMessage("ItemRegistered","STOP","Falha ao gerar objeto XML : " + oXML:Error())
+                fnGrvLog(cEndPoint,cBody,"",oWsdl:cError,"Consulta Baixa ID Mov: "+ pIDMov,"Consulta","Integracao Estoque")
+            else
+                oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
+                oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
+                
+                aAdd(aRet, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:IDMOV'))
+                aAdd(aRet, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:IDLAN'))
+                aAdd(aRet, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:NUMEROMOV'))
+                
+                fnGrvLog(cEndPoint,cBody,cResult,"","Consulta Baixa ID Mov: "+ pIDMov,"Consulta","Integracao Estoque")
+            Endif
+
+        EndIf
+    EndIF 
+    
+Return aRet
 
 //-----------------------------------------------------------------------------
 /*/{Protheus.doc} fnGrvLog
