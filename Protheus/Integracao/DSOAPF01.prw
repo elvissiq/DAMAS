@@ -8,7 +8,7 @@
 User Function: DSOAPF01 - Função para Integração Via SOAP com o TOTVS Corpore RM
 @OWNER PanCristal
 @VERSION PROTHEUS 12
-@SINCE 14/06/2024
+@SINCE 19/06/2024
 @Permite
 Programa Fonte
 /*/
@@ -17,7 +17,9 @@ User Function DSOAPF01(pCodProd,pLocPad,pEndpoint)
     
     Private cUrl      := SuperGetMV("MV_XURLRM" ,.F.,"https://associacaodas145873.rm.cloudtotvs.com.br:1801")
     Private cUser     := SuperGetMV("MV_XRMUSER",.F.,"rimeson")
-    Private cPass     := SuperGetMV("MV_XRMPASS",.F.,"235289")
+    Private cPass     := SuperGetMV("MV_XRMPASS",.F.,"123456")
+    Private cDiasInc  := SuperGetMV("MV_XDINCRM",.F.,"0")
+    Private cDiasAlt  := SuperGetMV("MV_XDALTRM",.F.,"0")
     Private cCodEmp   := ""
     Private cCodFil   := ""
     Private cPicVal   := PesqPict( "SL1", "L1_VALBRUT")
@@ -39,6 +41,9 @@ User Function DSOAPF01(pCodProd,pLocPad,pEndpoint)
     FwLogMsg("INFO", , "REST", FunName(), "", "01", '=== Inicio da Integracao com o Corpore RM no Endpoint: '+ cEndPoint +' ===')
 
         Do Case 
+            Case cEndPoint == 'wsCliFor'
+                fConsultCli()
+
             Case cEndPoint == 'RealizarConsultaSQL'
                 fConsultEst(pCodProd,pLocPad)
             
@@ -60,6 +65,74 @@ User Function DSOAPF01(pCodProd,pLocPad,pEndpoint)
     
     FWRestArea(aArea)
 
+Return
+
+//-----------------------------------------------------------------------------
+/*/{Protheus.doc} fConsultCli
+Realiza a consulta de estoque através da API padrão employeeDataContent no RM
+/*/
+//-----------------------------------------------------------------------------
+
+Static Function fConsultCli()
+
+    Local oWsdl as Object
+    Local oXml as Object 
+    Local cPath     := "/wsConsultaSQL/MEX?wsdl"
+    Local cBody     := ""
+    Local cResult   := ""
+
+    cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
+    cBody += '  <soapenv:Header/> '
+    cBody += '  <soapenv:Body> '
+    cBody += '      <tot:RealizarConsultaSQL> '
+    cBody += '          <tot:codSentenca>wsCliFor</tot:codSentenca> '
+    cBody += '          <tot:codColigada>0</tot:codColigada> '
+    cBody += '          <tot:codSistema>T</tot:codSistema> '
+    cBody += '          <tot:parameters>CODCOLIGADA_N=0;ATIVO_N=1;CODCFO_S=TODOS;CGCCFO_S=TODOS;NOMEFANTASIA_S=TODOS; PAGREC_N=1;CRIACAO_N='+cDiasInc+';ALTERACAO_N='+cDiasAlt+'</tot:parameters> '
+    cBody += '      </tot:RealizarConsultaSQL> '
+    cBody += '  </soapenv:Body> '
+    cBody += ' </soapenv:Envelope> '
+
+    oWsdl := TWsdlManager():New()
+    oWsdl:nTimeout         := 120
+    oWsdl:lSSLInsecure     := .T.
+    oWsdl:lProcResp        := .T.
+    oWsdl:bNoCheckPeerCert := .T.
+    oWSDL:lUseNSPrefix     := .T.
+    oWsdl:lVerbose         := .T.
+    
+    If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
+        ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+        lErIntRM := .T.
+    Else
+
+        oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
+
+        If !oWsdl:SendSoapMsg( cBody )
+            ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Clientes","2","Integracao Cliente")
+            lErIntRM := .T.
+            Return
+        Else
+            cResult := oWsdl:GetSoapResponse()
+            cResult := StrTran(cResult, "&lt;", "<")
+            cResult := StrTran(cResult, "&gt;&#xD;", ">")
+            cResult := StrTran(cResult, "&gt;", ">")
+            oXml := TXmlManager():New()
+
+            If !oXML:Parse( cResult )
+                ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
+                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Clientes","2","Integracao Cliente")
+            else
+                oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
+                oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
+
+                fnGrvLog(cEndPoint,cBody,cResult,"","Cliente: ","2","Integracao Cliente")
+            Endif
+
+        EndIf
+    EndIF 
+    
 Return
 
 //-----------------------------------------------------------------------------
@@ -99,15 +172,15 @@ Static Function fConsultEst(pCodProd,pLocPad)
     oWsdl:lVerbose         := .T.
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
-        STFMessage("ItemRegistered","STOP","Error: " + oWsdl:cError)
+        STFMessage("ItemRegistered","STOP","Error: " + DecodeUTF8(oWsdl:cError, "cp1252"))
         lErIntRM := .T.
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
-            STFMessage("ItemRegistered","STOP","Falha no objeto XML retornado pelo TOTVS Corpore RM : "+oWsdl:cError)
-            fnGrvLog(cEndPoint,cBody,"",oWsdl:cError,"Armazem: "+cLocEstoq+", Produto: "+cCodProd,"Consulta","Integracao Estoque")
+            STFMessage("ItemRegistered","STOP","Falha no objeto XML retornado pelo TOTVS Corpore RM : "+DecodeUTF8(oWsdl:cError, "cp1252"))
+            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Armazem: "+cLocEstoq+", Produto: "+cCodProd,"2","Integracao Estoque")
             lErIntRM := .T.
             Return
         Else
@@ -119,7 +192,7 @@ Static Function fConsultEst(pCodProd,pLocPad)
 
             If !oXML:Parse( cResult )
                 STFMessage("ItemRegistered","STOP","Falha ao gerar objeto XML : " + oXML:Error())
-                fnGrvLog(cEndPoint,cBody,"",oWsdl:cError,"Armazem: "+cLocEstoq+", Produto: "+cCodProd,"Consulta","Integracao Estoque")
+                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Armazem: "+cLocEstoq+", Produto: "+cCodProd,"2","Integracao Estoque")
             else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -134,7 +207,7 @@ Static Function fConsultEst(pCodProd,pLocPad)
                         EndIF 
                     EndIF
                 EndIF
-                fnGrvLog(cEndPoint,cBody,cResult,"","Armazem: "+cLocEstoq+", Produto: "+cCodProd,"Consulta","Integracao Estoque")
+                fnGrvLog(cEndPoint,cBody,cResult,"","Armazem: "+cLocEstoq+", Produto: "+cCodProd,"2","Integracao Estoque")
             Endif
 
         EndIf
@@ -424,16 +497,16 @@ Static Function fEnvNFeVend()
     oWsdl:lVerbose         := .T.
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
-        STFMessage("ItemRegistered","Integração TOTVS Corpore RM","Error: " + oWsdl:cError)
+        ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
         lErIntRM := .T.
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
-            STFMessage("ItemRegistered","Integração TOTVS Corpore RM","Falha no objeto XML retornado pelo TOTVS Corpore RM : "+oWsdl:cError)
+            ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
             lErIntRM := .T.
-            fnGrvLog(cEndPoint,cBody,"",oWsdl:cError,"SL1 - "+SL1->L1_NUM,"Inclusao","Integracao NFC-e")
+            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"SL1 - "+SL1->L1_NUM,"3","Integracao NFC-e")
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -443,8 +516,8 @@ Static Function fEnvNFeVend()
             oXml := TXmlManager():New()
 
             If !oXML:Parse( cResult )
-                STFMessage("ItemRegistered","Integração TOTVS Corpore RM","Falha ao gerar objeto XML : " + oXML:Error())
-                fnGrvLog(cEndPoint,cBody,"",oXML:Error(),"SL1 - "+SL1->L1_NUM,"Inclusao","Integracao NFC-e")
+                ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
+                fnGrvLog(cEndPoint,cBody,"",oXML:Error(),"SL1 - "+SL1->L1_NUM,"3","Integracao NFC-e")
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -463,7 +536,7 @@ Static Function fEnvNFeVend()
                         SL1->(MSUnlock())
                     EndIF 
                 EndIF 
-                fnGrvLog(cEndPoint,cBody,cResult,"","SL1 - "+SL1->L1_NUM,"Inclusao","Integracao NFC-e")
+                fnGrvLog(cEndPoint,cBody,cResult,"","SL1 - "+SL1->L1_NUM,"3","Integracao NFC-e")
             Endif
 
         EndIf
@@ -794,16 +867,16 @@ Static Function fEnvNFeDev()
     oWsdl:lVerbose         := .T.
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
-        STFMessage("ItemRegistered","Integração TOTVS Corpore RM","Error: " + oWsdl:cError)
-        fnGrvLog(cEndPoint,cBody,cResult,oWsdl:cError,"SF1 - "+SF1->F1_DOC,"Inclusao","Integracao NF Devolucao")
+        ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+        fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"SF1 - "+SF1->F1_DOC,"3","Integracao NF Devolucao")
         lErIntRM := .T.
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
-            STFMessage("ItemRegistered","Integração TOTVS Corpore RM","Falha no objeto XML retornado pelo TOTVS Corpore RM : "+oWsdl:cError)
-            fnGrvLog(cEndPoint,cBody,cResult,oWsdl:cError,"SF1 - "+SF1->F1_DOC,"Inclusao","Integracao NF Devolucao")
+            ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+            fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"SF1 - "+SF1->F1_DOC,"3","Integracao NF Devolucao")
             lErIntRM := .T.
             Return
         Else
@@ -814,8 +887,8 @@ Static Function fEnvNFeDev()
             oXml := TXmlManager():New()
 
             If !oXML:Parse( cResult )
-                STFMessage("ItemRegistered","Integração TOTVS Corpore RM","Falha ao gerar objeto XML : " + oXML:Error())
-                fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),"SF1 - "+SF1->F1_DOC,"Inclusao","Integracao NF Devolucao")
+                ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
+                fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),"SF1 - "+SF1->F1_DOC,"3","Integracao NF Devolucao")
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -834,7 +907,7 @@ Static Function fEnvNFeDev()
                         SF1->(MSUnlock())
                     EndIF
                 EndIF 
-                fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),"SF1 - "+SF1->F1_DOC,"Inclusao","Integracao NF Devolucao")
+                fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),"SF1 - "+SF1->F1_DOC,"3","Integracao NF Devolucao")
             Endif
 
         EndIf
@@ -1047,16 +1120,16 @@ Static Function fCanFinan()
     oWsdl:lVerbose         := .T.
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("FinLanBaixaCancelamentoData")
-        STFMessage("ItemRegistered","Integração TOTVS Corpore RM","Error: " + oWsdl:cError)
-        fnGrvLog(cEndPoint,cBody,cResult,oWsdl:cError,cDocCanc,"Cancelamento","Integracao de Cancelamento")
+        ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+        fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),cDocCanc,"5","Integracao de Cancelamento")
         lErIntRM := .T.
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
-            STFMessage("ItemRegistered","Integração TOTVS Corpore RM","Falha no objeto XML retornado pelo TOTVS Corpore RM : "+oWsdl:cError)
-            fnGrvLog(cEndPoint,cBody,cResult,oWsdl:cError,cDocCanc,"Cancelamento","Integracao de Cancelamento")
+            ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+            fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),cDocCanc,"5","Integracao de Cancelamento")
             lErIntRM := .T.
             Return
         Else
@@ -1067,13 +1140,13 @@ Static Function fCanFinan()
             oXml := TXmlManager():New()
 
             If !oXML:Parse( cResult )
-                STFMessage("ItemRegistered","Integração TOTVS Corpore RM","Falha ao gerar objeto XML : " + oXML:Error())
-                fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),cDocCanc,"Cancelamento","Integracao de Cancelamento")
+                ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
+                fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),cDocCanc,"5","Integracao de Cancelamento")
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
 
-                fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),cDocCanc,"Cancelamento","Integracao de Cancelamento")
+                fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),cDocCanc,"5","Integracao de Cancelamento")
             Endif
 
         EndIf
@@ -1286,16 +1359,16 @@ Static Function fCanMovim()
     oWsdl:lVerbose         := .T.
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("FinLanBaixaCancelamentoData")
-        STFMessage("ItemRegistered","Integração TOTVS Corpore RM","Error: " + oWsdl:cError)
-        fnGrvLog(cEndPoint,cBody,cResult,oWsdl:cError,cDocCanc,"Cancelamento","Integracao de Cancelamento")
+        ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+        fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),cDocCanc,"5","Integracao de Cancelamento")
         lErIntRM := .T.
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
-            STFMessage("ItemRegistered","Integração TOTVS Corpore RM","Falha no objeto XML retornado pelo TOTVS Corpore RM : "+oWsdl:cError)
-            fnGrvLog(cEndPoint,cBody,cResult,oWsdl:cError,cDocCanc,"Cancelamento","Integracao de Cancelamento")
+            ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+            fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),cDocCanc,"5","Integracao de Cancelamento")
             lErIntRM := .T.
             Return
         Else
@@ -1306,12 +1379,12 @@ Static Function fCanMovim()
             oXml := TXmlManager():New()
 
             If !oXML:Parse( cResult )
-                STFMessage("ItemRegistered","Integração TOTVS Corpore RM","Falha ao gerar objeto XML : " + oXML:Error())
-                fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),cDocCanc,"Cancelamento","Integracao de Cancelamento")
+                ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
+                fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),cDocCanc,"5","Integracao de Cancelamento")
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/") 
-                fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),cDocCanc,"Cancelamento","Integracao de Cancelamento")
+                fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),cDocCanc,"5","Integracao de Cancelamento")
             Endif
 
         EndIf
@@ -1355,15 +1428,15 @@ Static Function fnConsultBX(pIDMov)
     oWsdl:lVerbose         := .T.
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
-        STFMessage("ItemRegistered","STOP","Error: " + oWsdl:cError)
+        ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
         lErIntRM := .T.
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
-            STFMessage("ItemRegistered","STOP","Falha no objeto XML retornado pelo TOTVS Corpore RM : "+oWsdl:cError)
-            fnGrvLog(cEndPoint,cBody,"",oWsdl:cError,"Consulta Baixa ID Mov: "+ pIDMov,"Consulta","Integracao Estoque")
+            ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta Baixa ID Mov: "+ pIDMov,"2","Integracao Estoque")
             lErIntRM := .T.
             Return
         Else
@@ -1374,8 +1447,8 @@ Static Function fnConsultBX(pIDMov)
             oXml := TXmlManager():New()
 
             If !oXML:Parse( cResult )
-                STFMessage("ItemRegistered","STOP","Falha ao gerar objeto XML : " + oXML:Error())
-                fnGrvLog(cEndPoint,cBody,"",oWsdl:cError,"Consulta Baixa ID Mov: "+ pIDMov,"Consulta","Integracao Estoque")
+                ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
+                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta Baixa ID Mov: "+ pIDMov,"2","Integracao Estoque")
             else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -1384,7 +1457,7 @@ Static Function fnConsultBX(pIDMov)
                 aAdd(aRet, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:IDLAN'))
                 aAdd(aRet, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:NUMEROMOV'))
                 
-                fnGrvLog(cEndPoint,cBody,cResult,"","Consulta Baixa ID Mov: "+ pIDMov,"Consulta","Integracao Estoque")
+                fnGrvLog(cEndPoint,cBody,cResult,"","Consulta Baixa ID Mov: "+ pIDMov,"2","Integracao Estoque")
             Endif
 
         EndIf
