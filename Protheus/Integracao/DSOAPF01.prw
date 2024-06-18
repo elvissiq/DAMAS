@@ -43,13 +43,22 @@ User Function DSOAPF01(pCodProd,pLocPad,pEndpoint)
 
         Do Case 
             Case cEndPoint == 'wsCliFor'
-                fConsCliComp()
+                fwsCliFor()
             
             Case cEndPoint == 'wsCliForResumo'
-                fConsCliRes()
+                fwsCliForR()
 
-            Case cEndPoint == 'RealizarConsultaSQL'
-                fConsultEst(pCodProd,pLocPad)
+            Case cEndPoint == 'wsProdutos'
+                fwsProdutos()
+            
+            Case cEndPoint == 'wsTabPreco'
+                fwsTabPreco()
+
+            Case cEndPoint == 'wsPontoVenda'
+                fwsPontoVenda()
+
+            Case cEndPoint == 'wsTprdLoc'
+                fwsTprdLoc(pCodProd,pLocPad)
             
             Case cEndPoint == 'MovMovCopiaReferenciaData'
                 fEnvNFeDev()
@@ -72,12 +81,12 @@ User Function DSOAPF01(pCodProd,pLocPad,pEndpoint)
 Return
 
 //------------------------------------------------------------------------------------------
-/*/{Protheus.doc} fConsCliComp
+/*/{Protheus.doc} fwsCliFor
 Realiza a consulta de clientes através da API padrão RealizarConsultaSQL no RM (Completo)
 /*/
 //------------------------------------------------------------------------------------------
 
-Static Function fConsCliComp()
+Static Function fwsCliFor()
 
     Local oWsdl as Object
     Local oXml as Object 
@@ -159,9 +168,16 @@ Static Function fConsCliComp()
                         oModel:Activate()
                         oSA1Mod:= oModel:getModel("SA1MASTER")
 
+                        aRegXML[05][03] := StrTran(aRegXML[05][03],".","")
+                        aRegXML[05][03] := StrTran(aRegXML[05][03],"-","")
+                        aRegXML[05][03] := StrTran(aRegXML[05][03],"/","")
+
+                        aRegXML[14][03] := StrTran(aRegXML[05][03],"-","")
+
                         oSA1Mod:setValue("A1_COD"    ,aRegXML[02][03]                               ) // Codigo
                         oSA1Mod:setValue("A1_LOJA"   ,"01"                                          ) // Loja
-                        oSA1Mod:setValue("A1_TIPO"   ,aRegXML[49][03]                               ) // Tipo
+                        oSA1Mod:setValue("A1_PESSOA" ,aRegXML[49][03]                               ) // Pessoa Fisica/Juridica
+                        oSA1Mod:setValue("A1_TIPO"   ,"F"                                           ) // Tipo do Cliente (F=Cons.Final;L=Produtor Rural;R=Revendedor;S=Solidario;X=Exportacao)
                         oSA1Mod:setValue("A1_CGC"    ,aRegXML[05][03]                               ) // CNPJ/CPF
                         oSA1Mod:setValue("A1_INSCR"  ,aRegXML[06][03]                               ) // Inscricao Estadual
                         oSA1Mod:setValue("A1_NOME"   ,aRegXML[04][03]                               ) // Nome
@@ -231,13 +247,469 @@ Static Function fConsCliComp()
 
 Return
 
+//------------------------------------------------------------------------------------------
+/*/{Protheus.doc} fwsCliForR
+Realiza a consulta de clientes através da API padrão RealizarConsultaSQL no RM (Resumido)
+/*/
+//------------------------------------------------------------------------------------------
+
+Static Function fwsCliForR()
+
+    Local oWsdl as Object
+    Local oXml as Object 
+    Local oModel as Object 
+    Local oSA1Mod as Object
+    Local cPath     := "/wsConsultaSQL/MEX?wsdl"
+    Local cBody     := ""
+    Local cResult   := ""
+    Local cErro     := ""
+    Local aRegXML   := {}
+    Local aErro     := {}
+    Local nY, lOk, nOpc
+
+    cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
+    cBody += '  <soapenv:Header/> '
+    cBody += '  <soapenv:Body> '
+    cBody += '      <tot:RealizarConsultaSQL> '
+    cBody += '          <tot:codSentenca>'+cEndPoint+'</tot:codSentenca> '
+    cBody += '          <tot:codColigada>0</tot:codColigada> '
+    cBody += '          <tot:codSistema>T</tot:codSistema> '
+    cBody += '          <tot:parameters>CODCOLIGADA_N=0;ATIVO_N=1;CODCFO_S=TODOS;CGCCFO_S=TODOS;NOMEFANTASIA_S=TODOS; PAGREC_N=1;CRIACAO_N='+cDiasInc+';ALTERACAO_N='+cDiasAlt+'</tot:parameters> '
+    cBody += '      </tot:RealizarConsultaSQL> '
+    cBody += '  </soapenv:Body> '
+    cBody += ' </soapenv:Envelope> '
+
+    oWsdl := TWsdlManager():New()
+    oWsdl:nTimeout         := 120
+    oWsdl:lSSLInsecure     := .T.
+    oWsdl:lProcResp        := .T.
+    oWsdl:bNoCheckPeerCert := .T.
+    oWSDL:lUseNSPrefix     := .T.
+    oWsdl:lVerbose         := .T.
+    
+    If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
+        ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+        fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Clientes","2","Integracao Cliente")
+    Else
+
+        oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
+
+        If !oWsdl:SendSoapMsg( cBody )
+            ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Clientes","2","Integracao Cliente")
+            Return
+        Else
+            cResult := oWsdl:GetSoapResponse()
+            cResult := StrTran(cResult, "&lt;", "<")
+            cResult := StrTran(cResult, "&gt;&#xD;", ">")
+            cResult := StrTran(cResult, "&gt;", ">")
+            oXml := TXmlManager():New()
+
+            If !oXML:Parse( cResult )
+                ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
+                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Clientes","2","Integracao Cliente")
+            else
+                oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
+                oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
+
+                DBSelectArea("SA1")
+                DBSelectArea("SYA")
+                SYA->(DBSetOrder(2))
+                DBSelectArea("CCH")
+                CCH->(DBSetOrder(2))
+
+                For nY := 1 To oXML:XPathChildCount('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet')
+                    aRegXML := {}
+                    aRegXML := oXML:XPathGetChildArray('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']')
+                    
+                    If !Empty(aRegXML)
+
+                        oModel := FWLoadModel("CRMA980")
+                        IF ! SA1->(MsSeek(xFilial("SA1")+aRegXML[2,3]))
+                            nOpc := 3
+                            oModel:SetOperation(nOpc)
+                        Else
+                            nOpc := 4
+                            oModel:SetOperation(nOpc)
+                        EndIF 
+                        oModel:Activate()
+                        oSA1Mod:= oModel:getModel("SA1MASTER")
+
+                        aRegXML[05][03] := StrTran(aRegXML[05][03],".","")
+                        aRegXML[05][03] := StrTran(aRegXML[05][03],"-","")
+                        aRegXML[05][03] := StrTran(aRegXML[05][03],"/","")
+
+                        aRegXML[14][03] := StrTran(aRegXML[05][03],"-","")
+
+                        oSA1Mod:setValue("A1_COD"    ,aRegXML[02][03]                               ) // Codigo
+                        oSA1Mod:setValue("A1_LOJA"   ,"01"                                          ) // Loja
+                        oSA1Mod:setValue("A1_PESSOA" ,aRegXML[24][03]                               ) // Pessoa Fisica/Juridica
+                        oSA1Mod:setValue("A1_TIPO"   ,"F"                                           ) // Tipo do Cliente (F=Cons.Final;L=Produtor Rural;R=Revendedor;S=Solidario;X=Exportacao)
+                        oSA1Mod:setValue("A1_CGC"    ,aRegXML[05][03]                               ) // CNPJ/CPF
+                        oSA1Mod:setValue("A1_INSCR"  ,aRegXML[06][03]                               ) // Inscricao Estadual
+                        oSA1Mod:setValue("A1_NOME"   ,aRegXML[04][03]                               ) // Nome
+                        oSA1Mod:setValue("A1_NREDUZ" ,Pad(aRegXML[03][03],FWTamSX3("A1_NREDUZ")[1]) ) // Nome Fantasia
+                        oSA1Mod:setValue("A1_END"    ,aRegXML[08][03] + ", " + aRegXML[09][03]      ) // Endereco + Número
+                        oSA1Mod:setValue("A1_COMPENT",aRegXML[10][03]                               ) // Complemento
+                        oSA1Mod:setValue("A1_BAIRRO" ,aRegXML[11][03]                               ) // Bairro
+                        oSA1Mod:setValue("A1_CEP"    ,aRegXML[14][03]                               ) // CEP
+                        oSA1Mod:setValue("A1_EST"    ,aRegXML[13][03]                               ) // Estado
+                        oSA1Mod:setValue("A1_COD_MUN",aRegXML[25][03]                               ) // Municipio
+                        oSA1Mod:setValue("A1_MUN"    ,aRegXML[12][03]                               ) // Municipio
+                        oSA1Mod:setValue("A1_TEL"    ,aRegXML[15][03]                               ) // Telefone
+                        oSA1Mod:setValue("A1_FAX"    ,aRegXML[16][03]                               ) // Numero do FAX
+                        oSA1Mod:setValue("A1_TELEX"  ,aRegXML[17][03]                               ) // Telex
+                        oSA1Mod:setValue("A1_EMAIL"  ,aRegXML[18][03]                               ) // E-mail
+                        oSA1Mod:setValue("A1_CONTATO",aRegXML[19][03]                               ) // Contato
+                        oSA1Mod:setValue("A1_LC"     ,Val(aRegXML[20][03])                          ) // Limite de Credito
+                        oSA1Mod:setValue("A1_MSBLQL" ,IIF(aRegXML[19][03]=="1","2","1")             ) // Status (Ativo ou Inativo)
+                        If !Empty(Upper(aRegXML[23][03])) .And. SYA->(MSSeek(xFilial("SYA")+Upper(aRegXML[23][03])))
+                            oSA1Mod:LoadValue("A1_PAIS"   ,SYA->YA_CODGI                            ) // Codigo do País
+                        EndIF
+                        If !Empty(Upper(aRegXML[23][03])) .And. CCH->(MSSeek(xFilial("CCH")+Upper(aRegXML[23][03])))
+                            oSA1Mod:LoadValue("A1_CODPAIS",Alltrim(CCH->CCH_CODIGO)                 ) // Codigo do País Bacen.
+                        EndIF
+
+                        If oModel:VldData()
+                            If oModel:CommitData()
+                                lOk := .T.
+                            Else
+                                lOk := .F.
+                            EndIf
+                        Else
+                            lOk := .F.
+                        EndIf
+
+                        If ! lOk
+                            aErro := oModel:GetErrorMessage()
+                            AutoGrLog("Id do formulário de origem:"  + ' [' + AllToChar(aErro[01]) + ']')
+                            AutoGrLog("Id do campo de origem: "      + ' [' + AllToChar(aErro[02]) + ']')
+                            AutoGrLog("Id do formulário de erro: "   + ' [' + AllToChar(aErro[03]) + ']')
+                            AutoGrLog("Id do campo de erro: "        + ' [' + AllToChar(aErro[04]) + ']')
+                            AutoGrLog("Id do erro: "                 + ' [' + AllToChar(aErro[05]) + ']')
+                            AutoGrLog("Mensagem do erro: "           + ' [' + AllToChar(aErro[06]) + ']')
+                            AutoGrLog("Mensagem da solução: "        + ' [' + AllToChar(aErro[07]) + ']')
+                            AutoGrLog("Valor atribuído: "            + ' [' + AllToChar(aErro[08]) + ']')
+                            AutoGrLog("Valor anterior: "             + ' [' + AllToChar(aErro[09]) + ']')
+                            
+                            cErro := aErro[06]
+                            fnGrvLog(cEndPoint,cBody,cResult,cErro,"Cliente: " + aRegXML[2,3] + " - " +aRegXML[4,3],cValToChar(nOpc),"Integracao Cliente")
+                        Else
+                            fnGrvLog(cEndPoint,cBody,cResult,,"Erro Cliente: " + aRegXML[2,3] + " - " +aRegXML[4,3],cValToChar(nOpc),"Integracao Cliente")
+                        EndIf
+
+                        oModel:DeActivate()
+                    EndIF 
+                Next 
+                
+            Endif
+
+            FreeObj(oXML)
+            oXML := Nil
+        EndIf
+    EndIF 
+    
+    FreeObj(oWsdl)
+    oWsdl := Nil
+
+Return
+
+//------------------------------------------------------------------------------------------
+/*/{Protheus.doc} fwsProdutos
+Realiza a consulta de Produtos através da API padrão RealizarConsultaSQL no RM
+/*/
+//------------------------------------------------------------------------------------------
+
+Static Function fwsProdutos()
+
+    Local oWsdl as Object
+    Local oXml as Object 
+    Local oModel as Object 
+    Local oSB1Mod as Object
+    Local cPath     := "/wsConsultaSQL/MEX?wsdl"
+    Local cBody     := ""
+    Local cResult   := ""
+    Local cErro     := ""
+    Local aRegXML   := {}
+    Local aErro     := {}
+    Local nY, lOk, nOpc
+
+    cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
+    cBody += '  <soapenv:Header/> '
+    cBody += '  <soapenv:Body> '
+    cBody += '      <tot:RealizarConsultaSQL> '
+    cBody += '          <tot:codSentenca>'+cEndPoint+'</tot:codSentenca> '
+    cBody += '          <tot:codColigada>0</tot:codColigada> '
+    cBody += '          <tot:codSistema>T</tot:codSistema> '
+    cBody += '          <tot:parameters>VINCULADO_S=SIM;CODCOLIGADA_N='+cCodEmp+';INATIVO_N=2;ULTIMONIVEL_N=1;TIPO_S=P;IDPRD_N=0;CRIACAO_N='+cDiasInc+';ALTERACAO_N='+cDiasAlt+'</tot:parameters> '
+    cBody += '      </tot:RealizarConsultaSQL> '
+    cBody += '  </soapenv:Body> '
+    cBody += ' </soapenv:Envelope> '
+
+    oWsdl := TWsdlManager():New()
+    oWsdl:nTimeout         := 120
+    oWsdl:lSSLInsecure     := .T.
+    oWsdl:lProcResp        := .T.
+    oWsdl:bNoCheckPeerCert := .T.
+    oWSDL:lUseNSPrefix     := .T.
+    oWsdl:lVerbose         := .T.
+    
+    If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
+        ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+        fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Produtos","2","Integracao Produtos")
+    Else
+
+        oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
+
+        If !oWsdl:SendSoapMsg( cBody )
+            ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Produtos","2","Integracao Produtos")
+            Return
+        Else
+            cResult := oWsdl:GetSoapResponse()
+            cResult := StrTran(cResult, "&lt;", "<")
+            cResult := StrTran(cResult, "&gt;&#xD;", ">")
+            cResult := StrTran(cResult, "&gt;", ">")
+            oXml := TXmlManager():New()
+
+            If !oXML:Parse( cResult )
+                ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
+                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Produtos","2","Integracao Produtos")
+            else
+                oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
+                oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
+
+                DBSelectArea("SB1")
+                DBSelectArea("SYA")
+                SYA->(DBSetOrder(2))
+                DBSelectArea("CCH")
+                CCH->(DBSetOrder(2))
+
+                For nY := 1 To oXML:XPathChildCount('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet')
+                    aRegXML := {}
+                    aRegXML := oXML:XPathGetChildArray('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']')
+                    
+                    If !Empty(aRegXML)
+
+                        oModel := FWLoadModel("MATA010")
+                        IF ! SB1->(MsSeek(xFilial("SB1")+aRegXML[04][03]))
+                            nOpc := 3
+                            oModel:SetOperation(nOpc)
+                        Else
+                            nOpc := 4
+                            oModel:SetOperation(nOpc)
+                        EndIF 
+                        oModel:Activate()
+                        oSB1Mod:= oModel:getModel("SB1MASTER")
+
+                        oSB1Mod:setValue("B1_COD"    ,aRegXML[04][03] ) // Codigo
+                        oSB1Mod:setValue("B1_DESC"   ,aRegXML[09][03] ) // Descricao do Produto
+                        oSB1Mod:setValue("B1_TIPO"   ,"ME"            ) // Tipo de Produto (MP,PA,.)
+                        oSB1Mod:setValue("B1_UM"     ,aRegXML[59][03] ) // Unidade de Medida
+                        oSB1Mod:setValue("B1_LOCPAD" ,"01"            ) // Armazem Padrao p/Requis.
+                        oSB1Mod:setValue("B1_POSIPI" ,aRegXML[13][03] ) // Nomenclatura Ext.Mercosul
+                        oSB1Mod:setValue("B1_ORIGEM" ,"0"             ) // Origem do Produto
+                        oSB1Mod:setValue("B1_PESO"   ,aRegXML[16][03] ) // Peso Liquido
+                        oSB1Mod:setValue("B1_PESBRU" ,aRegXML[17][03] ) // Peso Bruto
+
+                        If oModel:VldData()
+                            If oModel:CommitData()
+                                lOk := .T.
+                            Else
+                                lOk := .F.
+                            EndIf
+                        Else
+                            lOk := .F.
+                        EndIf
+
+                        If ! lOk
+                            aErro := oModel:GetErrorMessage()
+                            AutoGrLog("Id do formulário de origem:"  + ' [' + AllToChar(aErro[01]) + ']')
+                            AutoGrLog("Id do campo de origem: "      + ' [' + AllToChar(aErro[02]) + ']')
+                            AutoGrLog("Id do formulário de erro: "   + ' [' + AllToChar(aErro[03]) + ']')
+                            AutoGrLog("Id do campo de erro: "        + ' [' + AllToChar(aErro[04]) + ']')
+                            AutoGrLog("Id do erro: "                 + ' [' + AllToChar(aErro[05]) + ']')
+                            AutoGrLog("Mensagem do erro: "           + ' [' + AllToChar(aErro[06]) + ']')
+                            AutoGrLog("Mensagem da solução: "        + ' [' + AllToChar(aErro[07]) + ']')
+                            AutoGrLog("Valor atribuído: "            + ' [' + AllToChar(aErro[08]) + ']')
+                            AutoGrLog("Valor anterior: "             + ' [' + AllToChar(aErro[09]) + ']')
+                            
+                            cErro := aErro[06]
+                            fnGrvLog(cEndPoint,cBody,cResult,cErro,"Produto: " + aRegXML[04][03] + " - " +aRegXML[09][03],cValToChar(nOpc),"Integracao Produto")
+                        Else
+                            fnGrvLog(cEndPoint,cBody,cResult,,"Erro Produto: " + aRegXML[04][03] + " - " +aRegXML[09][03],cValToChar(nOpc),"Integracao Produto")
+                        EndIf
+
+                        oModel:DeActivate()
+                    EndIF 
+                Next 
+                
+            Endif
+
+            FreeObj(oXML)
+            oXML := Nil
+        EndIf
+    EndIF 
+    
+    FreeObj(oWsdl)
+    oWsdl := Nil
+
+Return
+
+//------------------------------------------------------------------------------------------
+/*/{Protheus.doc} fwsTabPreco
+Realiza a consulta da Tabela de Preço através da API padrão RealizarConsultaSQL no RM
+/*/
+//------------------------------------------------------------------------------------------
+
+Static Function fwsTabPreco()
+
+    Local oWsdl as Object
+    Local oXml as Object  
+    Local cPath     := "/wsConsultaSQL/MEX?wsdl"
+    Local cBody     := ""
+    Local cResult   := ""
+    Local cErro     := ""
+    Local aRegXML   := {}
+    Local aErro     := {}
+    Local aRegDA0   := {}
+    Local aRegDA1   := {}
+    Local aLinha    := {}
+    Local nY, nOpc, nAux
+
+    Private lMSHelpAuto     := .T.
+    Private lAutoErrNoFile  := .T.
+    Private lMsErroAuto     := .F.
+
+    cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
+    cBody += '  <soapenv:Header/> '
+    cBody += '  <soapenv:Body> '
+    cBody += '      <tot:RealizarConsultaSQL> '
+    cBody += '          <tot:codSentenca>'+cEndPoint+'</tot:codSentenca> '
+    cBody += '          <tot:codColigada>0</tot:codColigada> '
+    cBody += '          <tot:codSistema>T</tot:codSistema> '
+    cBody += '          <tot:parameters>CODCOLIGADA_N='+cCodEmp+';CODFILIAL_N='+cCodFil+';IDPRD_N=0;CRIACAO_N='+cDiasInc+';ALTERACAO_N='+cDiasAlt+'</tot:parameters> '
+    cBody += '      </tot:RealizarConsultaSQL> '
+    cBody += '  </soapenv:Body> '
+    cBody += ' </soapenv:Envelope> '
+
+    oWsdl := TWsdlManager():New()
+    oWsdl:nTimeout         := 120
+    oWsdl:lSSLInsecure     := .T.
+    oWsdl:lProcResp        := .T.
+    oWsdl:bNoCheckPeerCert := .T.
+    oWSDL:lUseNSPrefix     := .T.
+    oWsdl:lVerbose         := .T.
+    
+    If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
+        ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+        fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao da Tabela de Preco","2","Integracao Tabela de Preco")
+    Else
+
+        oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
+
+        If !oWsdl:SendSoapMsg( cBody )
+            ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao da Tabela de Preco","2","Integracao Tabela de Preco")
+            Return
+        Else
+            cResult := oWsdl:GetSoapResponse()
+            cResult := StrTran(cResult, "&lt;", "<")
+            cResult := StrTran(cResult, "&gt;&#xD;", ">")
+            cResult := StrTran(cResult, "&gt;", ">")
+            oXml := TXmlManager():New()
+
+            If !oXML:Parse( cResult )
+                ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
+                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao da Tabela de Preco","2","Integracao Tabela de Preco")
+            else
+                oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
+                oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
+
+                DBSelectArea("DA0")
+                DBSelectArea("DA1")
+
+                For nY := 1 To oXML:XPathChildCount('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet')
+                    aRegXML := {}
+                    aRegXML := oXML:XPathGetChildArray('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']')
+                    
+                    If !Empty(aRegXML)
+
+                        IF ! DA0->(MsSeek(xFilial("DA0") + StrZero(aRegXML[02][03], FWTamSX3("DA0_CODTAB")[1])))
+                            nOpc := 3
+                        Else
+                            nOpc := 4
+                        EndIF 
+                        
+                        aRegDA0 := {}
+                        aRegDA1 := {}
+
+                        aAdd(aRegDA0,{"DA0_CODTAB" , StrZero(aRegXML[02][03], FWTamSX3("DA0_CODTAB")[1]), Nil} ) // Codigo
+                        aAdd(aRegDA0,{"DA0_DESCRI" , aRegXML[03][03]                                    , Nil} ) // Descricao
+                        aAdd(aRegDA0,{"DA0_DATDE"  , FwDateTimeToLocal(aRegXML[12][03])[1]              , Nil} ) // Data Inicial
+                        aAdd(aRegDA0,{"DA0_HORADE" , FwDateTimeToLocal(aRegXML[12][03])[2]              , Nil} ) // Hora Inicial
+                        aAdd(aRegDA0,{"DA0_DATATE" , FwDateTimeToLocal(aRegXML[13][03])[1]              , Nil} ) // Data Final  
+                        aAdd(aRegDA0,{"DA0_HORATE" , FwDateTimeToLocal(aRegXML[13][03])[2]              , Nil} ) // Hora Final
+
+                        DA1->(DBGoTop())
+                        
+                        aLinha := {}
+                        
+                        IF ! DA1->(MsSeek(xFilial("DA1") + StrZero(aRegXML[02][03], FWTamSX3("DA0_CODTAB")[1]) + aRegXML[07][03] ))
+                            While DA1->(!Eof()) .And. StrZero(aRegXML[02][03], FWTamSX3("DA0_CODTAB")[1]) == DA1->DA1_CODTAB
+                                aLinha := {}
+                                aAdd(aLinha,{"LINPOS", "DA1_ITEM", DA1->DA1_ITEM})
+                                aAdd(aRegDA1,aLinha)
+                                DA1->(DBSkip())
+                            End 
+                            aAdd(aLinha,{"LINPOS", "DA1_ITEM", Soma1(DA1->DA1_ITEM)})
+                        Else 
+                            aAdd(aLinha,{"LINPOS", "DA1_ITEM", DA1->DA1_ITEM })
+                            aAdd(aLinha,{"AUTDELETA", "N", Nil})
+                        EndIF 
+
+                        aAdd(aLinha,{"DA1_CODPRO", aRegXML[07][03]                                    , Nil} ) // Codigo do Produto
+                        aAdd(aLinha,{"DA1_PRCVEN", aRegXML[11][03]                                    , Nil} ) // Preco de venda
+                        aAdd(aLinha,{"DA1_ATIVO" , IIF(aRegXML[14][03] == "1","1","2")                , Nil} ) // Item Ativo (1=Sim;2=Nao)
+                        
+                        lMsErroAuto := .F.
+
+                        MSExecAuto({|x,y,z| Omsa010(x,y,z)},aCabec,aItens,nOpc)
+
+                        If lMsErroAuto
+                            aErro := GetAutoGRLog()
+                            
+                            For nAux := 1 To Len(aErro)
+                                cErro += aErro[nAux] + CRLF
+                            Next
+                            
+                            fnGrvLog(cEndPoint,cBody,cResult,cErro,"Tabela de Preço: " + StrZero(aRegXML[02][03], FWTamSX3("DA0_CODTAB")[1]) + " - " +aRegXML[07][03],cValToChar(nOpc),"Integracao Tabela de Preço")
+                        Else
+                            fnGrvLog(cEndPoint,cBody,cResult,,"Erro Tabela de Preço: " + StrZero(aRegXML[02][03], FWTamSX3("DA0_CODTAB")[1]) + " - " +aRegXML[07][03],cValToChar(nOpc),"Integracao Tabela de Preço")
+                        EndIf
+
+                    EndIF 
+                Next 
+                
+            Endif
+
+            FreeObj(oXML)
+            oXML := Nil
+        EndIf
+    EndIF 
+    
+    FreeObj(oWsdl)
+    oWsdl := Nil
+
+Return
+
 //-----------------------------------------------------------------------------
-/*/{Protheus.doc} fConsultEst
+/*/{Protheus.doc} fwsTprdLoc
 Realiza a consulta de estoque através da API padrão employeeDataContent no RM
 /*/
 //-----------------------------------------------------------------------------
 
-Static Function fConsultEst(pCodProd,pLocPad)
+Static Function fwsTprdLoc(pCodProd,pLocPad)
 
     Local oWsdl as Object
     Local oXml as Object 
@@ -311,6 +783,214 @@ Static Function fConsultEst(pCodProd,pLocPad)
     
 Return
 
+//------------------------------------------------------------------------------------------
+/*/{Protheus.doc} fwsPontoVenda
+Realiza a consulta de Ponto de Venda através da API padrão RealizarConsultaSQL no RM
+/*/
+//------------------------------------------------------------------------------------------
+
+Static Function fwsPontoVenda()
+
+    Local oWsdl as Object
+    Local oXml as Object 
+    Local cPath     := "/wsConsultaSQL/MEX?wsdl"
+    Local cBody     := ""
+    Local cResult   := ""
+    Local aRegXML   := {}
+    Local nY
+
+    cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
+    cBody += '  <soapenv:Header/> '
+    cBody += '  <soapenv:Body> '
+    cBody += '      <tot:RealizarConsultaSQL> '
+    cBody += '          <tot:codSentenca>'+cEndPoint+'</tot:codSentenca> '
+    cBody += '          <tot:codColigada>0</tot:codColigada> '
+    cBody += '          <tot:codSistema>T</tot:codSistema> '
+    cBody += '          <tot:parameters>CODCOLIGADA_N='+cCodEmp+';CODFILIAL_N='+cCodFil+';PONTOVENDA_S=0;INATIVO_N=2;CRIACAO_N='+cDiasInc+';ALTERACAO_N='+cDiasAlt+'</tot:parameters> '
+    cBody += '      </tot:RealizarConsultaSQL> '
+    cBody += '  </soapenv:Body> '
+    cBody += ' </soapenv:Envelope> '
+
+    oWsdl := TWsdlManager():New()
+    oWsdl:nTimeout         := 120
+    oWsdl:lSSLInsecure     := .T.
+    oWsdl:lProcResp        := .T.
+    oWsdl:bNoCheckPeerCert := .T.
+    oWSDL:lUseNSPrefix     := .T.
+    oWsdl:lVerbose         := .T.
+    
+    If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
+        ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+        fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Ponto de Venda","2","Integracao Ponto de Venda")
+    Else
+
+        oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
+
+        If !oWsdl:SendSoapMsg( cBody )
+            ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Ponto de Venda","2","Integracao Ponto de Venda")
+            Return
+        Else
+            cResult := oWsdl:GetSoapResponse()
+            cResult := StrTran(cResult, "&lt;", "<")
+            cResult := StrTran(cResult, "&gt;&#xD;", ">")
+            cResult := StrTran(cResult, "&gt;", ">")
+            oXml := TXmlManager():New()
+
+            If !oXML:Parse( cResult )
+                ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
+                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Ponto de Venda","2","Integracao Ponto de Venda")
+            else
+                oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
+                oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
+
+                DBSelectArea("SLG")
+
+                For nY := 1 To oXML:XPathChildCount('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet')
+                    aRegXML := {}
+                    aRegXML := oXML:XPathGetChildArray('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']')
+                    
+                    If !Empty(aRegXML)
+
+                        IF ! SA1->(MsSeek(xFilial("SA1")+aRegXML[2,3]))
+                            RecLock("SLG",.T.)
+                                SLG->LG_FILIAL  := xFilial("SLG")
+                                SLG->LG_CODIGO  := StrZero(aRegXML[02][03], FWTamSX3("LG_CODIGO")[1])
+                                SLG->LG_NOME    := aRegXML[03][03]
+                                SLG->LG_NFCE    := .T.
+                                SLG->LG_PDV     := aRegXML[06][03]
+                                SLG->LG_SERPDV  := aRegXML[06][03]
+                                SLG->LG_SERNFIS := '999'
+                                SLG->LG_COO     := '999999'
+                                SLG->LG_PORTIF  := 'COM1'
+                                FwPutSX5(cFilAnt, "01", aRegXML[06][03], '000000001', /*cTextoEng*/, /*cTextoEsp*/, /*cTextoAlt*/)
+                            SLG->(MSUnlock())
+
+                            fnGrvLog(cEndPoint,cBody,cResult,"","Estacao: "+StrZero(aRegXML[02][03], FWTamSX3("LG_CODIGO")[1]),"3","Integracao Ponto de Venda")
+                        Else
+                            RecLock("SLG",.T.)
+                                SLG->LG_NOME    := aRegXML[03][03]
+                            SLG->(MSUnlock())
+
+                            fnGrvLog(cEndPoint,cBody,cResult,"","Estacao: "+StrZero(aRegXML[02][03], FWTamSX3("LG_CODIGO")[1]),"4","Integracao Ponto de Venda")
+                        EndIF 
+                        
+                    EndIF 
+                Next 
+                
+            Endif
+
+            FreeObj(oXML)
+            oXML := Nil
+        EndIf
+    EndIF 
+    
+    FreeObj(oWsdl)
+    oWsdl := Nil
+
+Return
+
+//------------------------------------------------------------------------------------------
+/*/{Protheus.doc} fwsPrdCodBarras
+Realiza a consulta do Código de Barras através da API padrão RealizarConsultaSQL no RM
+/*/
+//------------------------------------------------------------------------------------------
+
+Static Function fwsPrdCodBarras()
+
+    Local oWsdl as Object
+    Local oXml as Object 
+    Local cPath     := "/wsConsultaSQL/MEX?wsdl"
+    Local cBody     := ""
+    Local cResult   := ""
+    Local aRegXML   := {}
+    Local nY
+
+    cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
+    cBody += '  <soapenv:Header/> '
+    cBody += '  <soapenv:Body> '
+    cBody += '      <tot:RealizarConsultaSQL> '
+    cBody += '          <tot:codSentenca>'+cEndPoint+'</tot:codSentenca> '
+    cBody += '          <tot:codColigada>0</tot:codColigada> '
+    cBody += '          <tot:codSistema>T</tot:codSistema> '
+    cBody += '          <tot:parameters>VINCULADO_S=SIM;CODCOLIGADA_N='+cCodEmp+';INATIVO_N=2;ULTIMONIVEL_N=1;TIPO_S=P;IDPRD_N=0;CRIACAO_N='+cDiasInc+';ALTERACAO_N='+cDiasAlt+'</tot:parameters> '
+    cBody += '      </tot:RealizarConsultaSQL> '
+    cBody += '  </soapenv:Body> '
+    cBody += ' </soapenv:Envelope> '
+
+    oWsdl := TWsdlManager():New()
+    oWsdl:nTimeout         := 120
+    oWsdl:lSSLInsecure     := .T.
+    oWsdl:lProcResp        := .T.
+    oWsdl:bNoCheckPeerCert := .T.
+    oWSDL:lUseNSPrefix     := .T.
+    oWsdl:lVerbose         := .T.
+    
+    If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
+        ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+        fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Codigo de Barras","2","Integracao Codigo de Barras")
+    Else
+
+        oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
+
+        If !oWsdl:SendSoapMsg( cBody )
+            ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Codigo de Barras","2","Integracao Codigo de Barras")
+            Return
+        Else
+            cResult := oWsdl:GetSoapResponse()
+            cResult := StrTran(cResult, "&lt;", "<")
+            cResult := StrTran(cResult, "&gt;&#xD;", ">")
+            cResult := StrTran(cResult, "&gt;", ">")
+            oXml := TXmlManager():New()
+
+            If !oXML:Parse( cResult )
+                ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
+                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Codigo de Barras","2","Integracao Codigo de Barras")
+            else
+                oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
+                oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
+
+                DBSelectArea("SLK")
+                SLK->(DBSetOrder(2))
+
+                For nY := 1 To oXML:XPathChildCount('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet')
+                    aRegXML := {}
+                    aRegXML := oXML:XPathGetChildArray('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']')
+                    
+                    If !Empty(aRegXML)
+
+                        IF ! SLK->(MsSeek(xFilial("SLK") + Pad(aRegXML[05][03],FWTamSX3("LK_CODIGO")[1]) + aRegXML[03][03] ))
+                            RecLock("SLK",.T.)
+                                SLK->LK_FILIAL  := xFilial("SLK")
+                                SLK->LK_CODBAR  := aRegXML[03][03]
+                                SLK->LK_CODIGO  := aRegXML[05][03]
+                                SLK->LK_QUANT   := 1
+                            SLK->(MSUnlock())
+
+                            fnGrvLog(cEndPoint,cBody,cResult,"","Codigo de Barras: "+aRegXML[05][03]+" - "+aRegXML[03][03],"3","Integracao Codigo de Barras")
+                        Else
+                            RecLock("SLK",.F.)
+                                SLK->LK_CODBAR  := aRegXML[03][03]
+                            SLK->(MSUnlock())
+
+                            fnGrvLog(cEndPoint,cBody,cResult,"","Codigo de Barras: "+aRegXML[05][03]+" - "+aRegXML[03][03],"4","Integracao Codigo de Barras")
+                        EndIF 
+                        
+                    EndIF  
+                Next 
+                
+            Endif
+
+            FreeObj(oXML)
+            oXML := Nil
+        EndIf
+    EndIF 
+    
+    FreeObj(oWsdl)
+    oWsdl := Nil
+
+Return
 //-----------------------------------------------------------------------------
 /*/{Protheus.doc} fEnvNFeVend
 Realiza o envio da Nota Fiscal de Saída para o Copore RM
