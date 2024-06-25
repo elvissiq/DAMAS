@@ -56,6 +56,12 @@ User Function DSOAPF01(pCodProd,pLocPad,pEndpoint)
 
             Case cEndPoint == 'wsPontoVenda'
                 fwsPontoVenda()
+            
+            Case cEndPoint == 'wsPrdCodBarras'
+                fwsPrdCodBarras()
+            
+            Case cEndPoint == 'wsVendedor'
+                fwsVendedor()
 
             Case cEndPoint == 'wsTprdLoc'
                 fwsTprdLoc(pCodProd,pLocPad)
@@ -867,12 +873,6 @@ Static Function fwsPontoVenda()
                             SLG->(MSUnlock())
 
                             fnGrvLog(cEndPoint,cBody,cResult,"","Estacao: "+StrZero(aRegXML[02][03], FWTamSX3("LG_CODIGO")[1]),"3","Integracao Ponto de Venda")
-                        Else
-                            RecLock("SLG",.T.)
-                                SLG->LG_NOME    := aRegXML[03][03]
-                            SLG->(MSUnlock())
-
-                            fnGrvLog(cEndPoint,cBody,cResult,"","Estacao: "+StrZero(aRegXML[02][03], FWTamSX3("LG_CODIGO")[1]),"4","Integracao Ponto de Venda")
                         EndIF 
                         
                     EndIF 
@@ -991,6 +991,217 @@ Static Function fwsPrdCodBarras()
     oWsdl := Nil
 
 Return
+
+//------------------------------------------------------------------------------------------
+/*/{Protheus.doc} fwsVendedor
+Realiza a consulta do Vendedor/Operador através da API padrão RealizarConsultaSQL no RM
+/*/
+//------------------------------------------------------------------------------------------
+
+Static Function fwsVendedor()
+
+    Local oWsdl as Object
+    Local oXml as Object 
+    Local oModel as Object 
+    Local oSA6Mod as Object
+    Local cPath     := "/wsConsultaSQL/MEX?wsdl"
+    Local cBody     := ""
+    Local cResult   := ""
+    Local cErro     := ""
+    Local aRegXML   := {}
+    Local aErro     := {}
+    Local aRegSA3   := {}
+    Local cCodVend  := ""
+    Local cCodOper  := ""
+    Local _cAlias   := "SA6_"+FWTimeStamp(1)
+    Local nOpc
+    Local nY, nAux
+
+    Private lMSHelpAuto     := .T.
+    Private lAutoErrNoFile  := .T.
+    Private lMsErroAuto     := .F.
+
+    cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
+    cBody += '  <soapenv:Header/> '
+    cBody += '  <soapenv:Body> '
+    cBody += '      <tot:RealizarConsultaSQL> '
+    cBody += '          <tot:codSentenca>'+cEndPoint+'</tot:codSentenca> '
+    cBody += '          <tot:codColigada>0</tot:codColigada> '
+    cBody += '          <tot:codSistema>T</tot:codSistema> '
+    cBody += '          <tot:parameters>VINCULADO_S=SIM;CODCOLIGADA_N='+cCodEmp+';INATIVO_N=2;ULTIMONIVEL_N=1;TIPO_S=P;IDPRD_N=0;CRIACAO_N='+cDiasInc+';ALTERACAO_N='+cDiasAlt+'</tot:parameters> '
+    cBody += '      </tot:RealizarConsultaSQL> '
+    cBody += '  </soapenv:Body> '
+    cBody += ' </soapenv:Envelope> '
+
+    oWsdl := TWsdlManager():New()
+    oWsdl:nTimeout         := 120
+    oWsdl:lSSLInsecure     := .T.
+    oWsdl:lProcResp        := .T.
+    oWsdl:bNoCheckPeerCert := .T.
+    oWSDL:lUseNSPrefix     := .T.
+    oWsdl:lVerbose         := .T.
+    
+    If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
+        ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+        fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Codigo de Barras","2","Integracao Codigo de Barras")
+    Else
+
+        oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
+
+        If !oWsdl:SendSoapMsg( cBody )
+            ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Vendedor/Operador","2","Integracao Vendedor/Operador")
+            Return
+        Else
+            cResult := oWsdl:GetSoapResponse()
+            cResult := StrTran(cResult, "&lt;", "<")
+            cResult := StrTran(cResult, "&gt;&#xD;", ">")
+            cResult := StrTran(cResult, "&gt;", ">")
+            oXml := TXmlManager():New()
+
+            If !oXML:Parse( cResult )
+                ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
+                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Vendedor/Operador","2","Integracao Vendedor/Operador")
+            else
+                oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
+                oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
+
+                DBSelectArea("SA3")
+                DBSelectArea("SA6")
+
+                For nY := 1 To oXML:XPathChildCount('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet')
+                    aRegXML := {}
+                    aRegXML := oXML:XPathGetChildArray('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']')
+
+                    //SA3 - Vendedor
+                    If !Empty(aRegXML)
+
+                        cCodVend := StrZero(aRegXML[20][03],FWTamSX3("A3_COD")[1])
+
+                        IF ! SA3->(MsSeek(xFilial("SA3") + cCodVend ))
+                            
+                            aRegSA3 := {}
+
+                            aAdd(aRegSA3, {"A3_COD"  , cCodVend	        , Nil})
+                            aAdd(aRegSA3, {"A3_NOME" , aRegXML[03][03]	, Nil})
+
+                            lMsErroAuto := .F.
+                            MSExecAuto({|x,y| MATA040(x,y)},aRegSA3,3)
+
+                            If lMsErroAuto
+                                aErro := GetAutoGRLog()
+                                For nAux := 1 To Len(aErro)
+                                    cErro += aErro[nAux] + CRLF
+                                Next
+                                fnGrvLog(cEndPoint,cBody,"",cErro,"Vendedor: "+cCodVend,"3","Integracao Vendedor")
+                            Else
+                                fnGrvLog(cEndPoint,cBody,cResult,"","Vendedor: "+cCodVend,"3","Integracao Vendedor")
+                            EndIF 
+
+                            
+                        Else
+                            aRegSA3 := {}
+                            aAdd(aRegSA3, {"A3_NOME" , aRegXML[03][03]	, Nil})
+
+                            lMsErroAuto := .F.
+                            MSExecAuto({|x,y| MATA040(x,y)},aRegSA3,4)
+
+                            If lMsErroAuto
+                                aErro := GetAutoGRLog()
+                                For nAux := 1 To Len(aErro)
+                                    cErro += aErro[nAux] + CRLF
+                                Next
+                                fnGrvLog(cEndPoint,cBody,"",cErro,"Vendedor: "+cCodVend,"4","Integracao Vendedor")
+                            Else
+                                fnGrvLog(cEndPoint,cBody,cResult,"","Vendedor: "+cCodVend,"4","Integracao Vendedor")
+                            EndIF
+                        EndIF 
+                        
+                    EndIF
+
+                    //SA6 - Bancos
+                    If !Empty(aRegXML)
+                        
+                        SA6->(DBSetOrder(2))
+
+                        oModel := FWLoadModel("MATA070")
+                        IF ! SA6->(MsSeek(xFilial("SA6") + Pad(aRegXML[03][03],FWTamSX3("A6_NOME")[1]) ))
+                            nOpc := 3
+                            oModel:SetOperation(nOpc)
+
+                            BeginSql Alias _cAlias
+                                SELECT MAX(A6_COD) A6_COD
+                                FROM %table:SA6% SA6
+                                WHERE A6_FILIAL = %xFilial:SA6%
+                                    AND SA6.A6_AGENCIA = '.'
+                                    AND SA6.%NotDel%
+                            EndSql
+                            cCodOper := IIF(!Empty((_cAlias)->A6_COD),Soma1((_cAlias)->A6_COD),'C02')
+                            (_cAlias)->(dbCloseArea())
+                        Else
+                            nOpc := 4
+                            oModel:SetOperation(nOpc)
+                            cCodOper := SA6->A6_COD
+                        EndIF 
+                        oModel:Activate()
+                        oSA6Mod:= oModel:getModel("MATA070_SA6")
+
+                        oSA6Mod:setValue("A6_COD"     , cCodOper                                        ) // Codigo
+                        oSA6Mod:setValue("A6_AGENCIA" , "."                                             ) // Nro Agencia
+                        oSA6Mod:setValue("A6_NUMCON"  , "."                                             ) // Nro Conta
+                        oSA6Mod:setValue("A6_NOME"    , Pad(aRegXML[20][03],FWTamSX3("A6_NOME")[1])     ) // Nome Banco
+                        oSA6Mod:setValue("A6_NREDUZ"  , Pad(aRegXML[20][03],FWTamSX3("A6_NREDUZ ")[1])  ) // Nome Red.Bco
+                        
+                        If oModel:VldData()
+                            If oModel:CommitData()
+                                lOk := .T.
+                            Else
+                                lOk := .F.
+                            EndIf
+                        Else
+                            lOk := .F.
+                        EndIf
+
+                        If ! lOk
+                            aErro := oModel:GetErrorMessage()
+                            AutoGrLog("Id do formulário de origem:"  + ' [' + AllToChar(aErro[01]) + ']')
+                            AutoGrLog("Id do campo de origem: "      + ' [' + AllToChar(aErro[02]) + ']')
+                            AutoGrLog("Id do formulário de erro: "   + ' [' + AllToChar(aErro[03]) + ']')
+                            AutoGrLog("Id do campo de erro: "        + ' [' + AllToChar(aErro[04]) + ']')
+                            AutoGrLog("Id do erro: "                 + ' [' + AllToChar(aErro[05]) + ']')
+                            AutoGrLog("Mensagem do erro: "           + ' [' + AllToChar(aErro[06]) + ']')
+                            AutoGrLog("Mensagem da solução: "        + ' [' + AllToChar(aErro[07]) + ']')
+                            AutoGrLog("Valor atribuído: "            + ' [' + AllToChar(aErro[08]) + ']')
+                            AutoGrLog("Valor anterior: "             + ' [' + AllToChar(aErro[09]) + ']')
+                            
+                            cErro := aErro[06]
+                            fnGrvLog(cEndPoint,cBody,cResult,cErro,"Operador: " + cCodOper ,cValToChar(nOpc),"Integracao Produto")
+                        Else
+                            IF nOpc == 3
+                                FwPutSX5(,"23", cCodOper , Pad(aRegXML[20][03],FWTamSX3("A6_NOME")[1]), /*cTextoEng*/, /*cTextoEsp*/, /*cTextoAlt*/)
+                                
+                            EndIF 
+
+                            fnGrvLog(cEndPoint,cBody,cResult,,"Erro Operador: " + cCodOper ,cValToChar(nOpc),"Integracao Produto")
+                        EndIf
+
+                        oModel:DeActivate()
+                        
+                    EndIF
+                Next 
+                
+            Endif
+
+            FreeObj(oXML)
+            oXML := Nil
+        EndIf
+    EndIF 
+    
+    FreeObj(oWsdl)
+    oWsdl := Nil
+
+Return
+
 //-----------------------------------------------------------------------------
 /*/{Protheus.doc} fEnvNFeVend
 Realiza o envio da Nota Fiscal de Saída para o Copore RM
