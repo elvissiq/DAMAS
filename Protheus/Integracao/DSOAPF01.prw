@@ -9,7 +9,7 @@
 User Function: DSOAPF01 - Função para Integração Via SOAP com o TOTVS Corpore RM
 @OWNER PanCristal
 @VERSION PROTHEUS 12
-@SINCE 19/06/2024
+@SINCE 10/07/2024
 @Permite
 Programa Fonte
 /*/
@@ -19,18 +19,24 @@ User Function DSOAPF01(pCodProd,pLocPad,pEndpoint)
     Private cUrl      := SuperGetMV("MV_XURLRM" ,.F.,"https://associacaodas145873.rm.cloudtotvs.com.br:1801")
     Private cUser     := SuperGetMV("MV_XRMUSER",.F.,"rimeson")
     Private cPass     := SuperGetMV("MV_XRMPASS",.F.,"123456")
-    Private cDiasInc  := SuperGetMV("MV_XDINCRM",.F.,"-10")
-    Private cDiasAlt  := SuperGetMV("MV_XDALTRM",.F.,"0")
+    Private cDiasInc  := SuperGetMV("MV_XDINCRM",.F.,"0")
+    Private cDiasAlt  := SuperGetMV("MV_XDALTRM",.F.,"-365")
     Private cCodEmp   := ""
     Private cCodFil   := ""
     Private cPicVal   := PesqPict( "SL1", "L1_VALBRUT")
     Private cEndPoint := pEndpoint
 
+    Default PARAMIXB  := {}
+
+    If Len(PARAMIXB) > 0
+        cEndPoint := PARAMIXB[3]
+    EndIf 
+    
     DBSelectArea("XXD")
     XXD->(DBSetOrder(3))
     If XXD->(MSSeek(Pad("RM",15)+cEmpAnt+cFilAnt))
-        cCodEmp := XXD->XXD_COMPA
-        cCodFil := XXD->XXD_BRANCH
+        cCodEmp := AllTrim(XXD->XXD_COMPA)
+        cCodFil :=  AllTrim(XXD->XXD_BRANCH)
     Else 
         ApMsgStop("Coligada + Filial não encontrada no De/Para." + CRLF + CRLF +;
                   "Por favor acessar a rotina De/Para de Empresas Mensagem Unica (APCFG050), no SIGACFG e cadastrar o De/Para." + CRLF + ;
