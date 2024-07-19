@@ -238,9 +238,9 @@ Static Function fwsCliFor()
                             AutoGrLog("Valor anterior: "             + ' [' + AllToChar(aErro[09]) + ']')
                             
                             cErro := aErro[06]
-                            fnGrvLog(cEndPoint,cBody,cResult,cErro,"Cliente: " + aRegXML[2,3] + " - " +aRegXML[4,3],cValToChar(nOpc),"Integracao Cliente")
+                            fnGrvLog(cEndPoint,cBody,'Erro',cErro,"Erro Cliente: " + aRegXML[2,3] + " - " +aRegXML[4,3],cValToChar(nOpc),"Integracao Cliente")
                         Else
-                            fnGrvLog(cEndPoint,cBody,cResult,,"Erro Cliente: " + aRegXML[2,3] + " - " +aRegXML[4,3],cValToChar(nOpc),"Integracao Cliente")
+                            fnGrvLog(cEndPoint,cBody,'Sucesso',,"Cliente: " + aRegXML[2,3] + " - " +aRegXML[4,3],cValToChar(nOpc),"Integracao Cliente")
                         EndIf
 
                         oModel:DeActivate()
@@ -337,11 +337,11 @@ Static Function fwsCliForR()
                     If !Empty(aRegXML)
 
                         oModel := FWLoadModel("CRMA980")
-                        IF ! SA1->(MsSeek(xFilial("SA1")+aRegXML[2,3]))
-                            nOpc := 3
+                        IF SA1->(MsSeek(xFilial("SA1")+aRegXML[2,3]))
+                            nOpc := 4
                             oModel:SetOperation(nOpc)
                         Else
-                            nOpc := 4
+                            nOpc := 3
                             oModel:SetOperation(nOpc)
                         EndIF 
                         oModel:Activate()
@@ -351,35 +351,50 @@ Static Function fwsCliForR()
                         aRegXML[05][03] := StrTran(aRegXML[05][03],"-","")
                         aRegXML[05][03] := StrTran(aRegXML[05][03],"/","")
 
-                        aRegXML[14][03] := StrTran(aRegXML[05][03],"-","")
+                        aRegXML[14][03] := StrTran(aRegXML[14][03],"-","")
 
-                        oSA1Mod:setValue("A1_COD"    ,aRegXML[02][03]                               ) // Codigo
-                        oSA1Mod:setValue("A1_LOJA"   ,"01"                                          ) // Loja
-                        oSA1Mod:setValue("A1_PESSOA" ,aRegXML[24][03]                               ) // Pessoa Fisica/Juridica
-                        oSA1Mod:setValue("A1_TIPO"   ,"F"                                           ) // Tipo do Cliente (F=Cons.Final;L=Produtor Rural;R=Revendedor;S=Solidario;X=Exportacao)
-                        oSA1Mod:setValue("A1_CGC"    ,aRegXML[05][03]                               ) // CNPJ/CPF
-                        oSA1Mod:setValue("A1_INSCR"  ,aRegXML[06][03]                               ) // Inscricao Estadual
-                        oSA1Mod:setValue("A1_NOME"   ,aRegXML[04][03]                               ) // Nome
-                        oSA1Mod:setValue("A1_NREDUZ" ,Pad(aRegXML[03][03],FWTamSX3("A1_NREDUZ")[1]) ) // Nome Fantasia
-                        oSA1Mod:setValue("A1_END"    ,aRegXML[08][03] + ", " + aRegXML[09][03]      ) // Endereco + Número
-                        oSA1Mod:setValue("A1_COMPENT",aRegXML[10][03]                               ) // Complemento
-                        oSA1Mod:setValue("A1_BAIRRO" ,aRegXML[11][03]                               ) // Bairro
-                        oSA1Mod:setValue("A1_CEP"    ,aRegXML[14][03]                               ) // CEP
-                        oSA1Mod:setValue("A1_EST"    ,aRegXML[13][03]                               ) // Estado
-                        oSA1Mod:setValue("A1_COD_MUN",aRegXML[25][03]                               ) // Municipio
-                        oSA1Mod:setValue("A1_MUN"    ,aRegXML[12][03]                               ) // Municipio
-                        oSA1Mod:setValue("A1_TEL"    ,aRegXML[15][03]                               ) // Telefone
-                        oSA1Mod:setValue("A1_FAX"    ,aRegXML[16][03]                               ) // Numero do FAX
-                        oSA1Mod:setValue("A1_TELEX"  ,aRegXML[17][03]                               ) // Telex
-                        oSA1Mod:setValue("A1_EMAIL"  ,aRegXML[18][03]                               ) // E-mail
-                        oSA1Mod:setValue("A1_CONTATO",aRegXML[19][03]                               ) // Contato
-                        oSA1Mod:setValue("A1_LC"     ,Val(aRegXML[20][03])                          ) // Limite de Credito
-                        oSA1Mod:setValue("A1_MSBLQL" ,IIF(aRegXML[19][03]=="1","2","1")             ) // Status (Ativo ou Inativo)
-                        If !Empty(Upper(aRegXML[23][03])) .And. SYA->(MSSeek(xFilial("SYA")+Upper(aRegXML[23][03])))
-                            oSA1Mod:LoadValue("A1_PAIS"   ,SYA->YA_CODGI                            ) // Codigo do País
+                        aRegXML[15][03] := StrTran(aRegXML[15][03],"-","")
+                        aRegXML[15][03] := StrTran(aRegXML[15][03],"(","")
+                        aRegXML[15][03] := StrTran(aRegXML[15][03],")","")
+                        aRegXML[15][03] := Pad(Alltrim(aRegXML[15][03]),FWTamSX3("A1_TEL")[1])
+
+                        aRegXML[16][03] := StrTran(aRegXML[16][03],"-","")
+                        aRegXML[16][03] := StrTran(aRegXML[16][03],"(","")
+                        aRegXML[16][03] := StrTran(aRegXML[16][03],")","")
+                        aRegXML[16][03] := Pad(Alltrim(aRegXML[16][03]),FWTamSX3("A1_FAX")[1])
+
+                        aRegXML[17][03] := StrTran(aRegXML[17][03],"-","")
+                        aRegXML[17][03] := StrTran(aRegXML[17][03],"(","")
+                        aRegXML[17][03] := StrTran(aRegXML[17][03],")","")
+                        aRegXML[17][03] := Pad(Alltrim(aRegXML[17][03]),FWTamSX3("A1_TELEX")[1])
+
+                        oSA1Mod:setValue("A1_COD"    ,aRegXML[02][03]                                                       ) // Codigo
+                        oSA1Mod:setValue("A1_LOJA"   ,"01"                                                                  ) // Loja
+                        oSA1Mod:setValue("A1_PESSOA" ,aRegXML[24][03]                                                       ) // Pessoa Fisica/Juridica
+                        oSA1Mod:setValue("A1_TIPO"   ,"F"                                                                   ) // Tipo do Cliente (F=Cons.Final;L=Produtor Rural;R=Revendedor;S=Solidario;X=Exportacao)
+                        oSA1Mod:setValue("A1_CGC"    ,aRegXML[05][03]                                                       ) // CNPJ/CPF
+                        oSA1Mod:setValue("A1_INSCR"  ,aRegXML[06][03]                                                       ) // Inscricao Estadual
+                        oSA1Mod:setValue("A1_NOME"   ,Pad(aRegXML[04][03],FWTamSX3("A1_NOME")[1])                           ) // Nome
+                        oSA1Mod:setValue("A1_NREDUZ" ,Pad(aRegXML[03][03],FWTamSX3("A1_NREDUZ")[1])                         ) // Nome Fantasia
+                        oSA1Mod:setValue("A1_END"    ,Pad(aRegXML[08][03] + ", " + aRegXML[09][03] ,FWTamSX3("A1_END")[1])  ) // Endereco + Número
+                        oSA1Mod:setValue("A1_COMPENT",Pad(aRegXML[10][03],FWTamSX3("A1_COMPENT")[1])                        ) // Complemento
+                        oSA1Mod:setValue("A1_BAIRRO" ,Pad(aRegXML[11][03],FWTamSX3("A1_BAIRRO")[1])                         ) // Bairro
+                        oSA1Mod:setValue("A1_CEP"    ,aRegXML[14][03]                                                       ) // CEP
+                        oSA1Mod:setValue("A1_EST"    ,aRegXML[13][03]                                                       ) // Estado
+                        oSA1Mod:setValue("A1_COD_MUN",aRegXML[25][03]                                                       ) // Municipio
+                        oSA1Mod:setValue("A1_MUN"    ,aRegXML[12][03]                                                       ) // Municipio
+                        oSA1Mod:setValue("A1_TEL"    ,aRegXML[15][03]                                                       ) // Telefone
+                        oSA1Mod:setValue("A1_FAX"    ,aRegXML[16][03]                                                       ) // Numero do FAX
+                        oSA1Mod:setValue("A1_TELEX"  ,aRegXML[17][03]                                                       ) // Telex
+                        oSA1Mod:setValue("A1_EMAIL"  ,Pad(Alltrim(aRegXML[18][03]),FWTamSX3("A1_EMAIL")[1])                 ) // E-mail
+                        oSA1Mod:setValue("A1_CONTATO",Pad(Alltrim(aRegXML[19][03]),FWTamSX3("A1_CONTATO")[1])               ) // Contato
+                        oSA1Mod:setValue("A1_LC"     ,Val(aRegXML[20][03])                                                  ) // Limite de Credito
+                        oSA1Mod:setValue("A1_MSBLQL" ,IIF(aRegXML[19][03]=="1","2","1")                                     ) // Status (Ativo ou Inativo)
+                        If !Empty(Upper(aRegXML[23][03])) .And. SYA->(MSSeek(xFilial("SYA")+Upper(aRegXML[23][03]))         )
+                            oSA1Mod:LoadValue("A1_PAIS"   ,SYA->YA_CODGI                                                    ) // Codigo do País
                         EndIF
                         If !Empty(Upper(aRegXML[23][03])) .And. CCH->(MSSeek(xFilial("CCH")+Upper(aRegXML[23][03])))
-                            oSA1Mod:LoadValue("A1_CODPAIS",Alltrim(CCH->CCH_CODIGO)                 ) // Codigo do País Bacen.
+                            oSA1Mod:LoadValue("A1_CODPAIS",Alltrim(CCH->CCH_CODIGO)                                         ) // Codigo do País Bacen.
                         EndIF
 
                         If oModel:VldData()
@@ -405,9 +420,9 @@ Static Function fwsCliForR()
                             AutoGrLog("Valor anterior: "             + ' [' + AllToChar(aErro[09]) + ']')
                             
                             cErro := aErro[06]
-                            fnGrvLog(cEndPoint,cBody,cResult,cErro,"Cliente: " + aRegXML[2,3] + " - " +aRegXML[4,3],cValToChar(nOpc),"Integracao Cliente")
+                            fnGrvLog(cEndPoint,cBody,'Erro',cErro,"Erro Cliente: " + aRegXML[2,3] + " - " +aRegXML[4,3],cValToChar(nOpc),"Integracao Cliente")
                         Else
-                            fnGrvLog(cEndPoint,cBody,cResult,,"Erro Cliente: " + aRegXML[2,3] + " - " +aRegXML[4,3],cValToChar(nOpc),"Integracao Cliente")
+                            fnGrvLog(cEndPoint,cBody,'Sucesso',,"Cliente: " + aRegXML[2,3] + " - " +aRegXML[4,3],cValToChar(nOpc),"Integracao Cliente")
                         EndIf
 
                         oModel:DeActivate()
@@ -514,15 +529,15 @@ Static Function fwsProdutos()
                         oModel:Activate()
                         oSB1Mod:= oModel:getModel("SB1MASTER")
 
-                        oSB1Mod:setValue("B1_COD"    ,aRegXML[04][03] ) // Codigo
-                        oSB1Mod:setValue("B1_DESC"   ,aRegXML[09][03] ) // Descricao do Produto
-                        oSB1Mod:setValue("B1_TIPO"   ,"ME"            ) // Tipo de Produto (MP,PA,.)
-                        oSB1Mod:setValue("B1_UM"     ,aRegXML[59][03] ) // Unidade de Medida
-                        oSB1Mod:setValue("B1_LOCPAD" ,"01"            ) // Armazem Padrao p/Requis.
-                        oSB1Mod:setValue("B1_POSIPI" ,aRegXML[13][03] ) // Nomenclatura Ext.Mercosul
-                        oSB1Mod:setValue("B1_ORIGEM" ,"0"             ) // Origem do Produto
-                        oSB1Mod:setValue("B1_PESO"   ,aRegXML[16][03] ) // Peso Liquido
-                        oSB1Mod:setValue("B1_PESBRU" ,aRegXML[17][03] ) // Peso Bruto
+                        oSB1Mod:setValue("B1_COD"    ,aRegXML[04][03]                                       ) // Codigo
+                        oSB1Mod:setValue("B1_DESC"   ,Pad(Alltrim(aRegXML[09][03]), FWTamSX3("B1_DESC")[1]) ) // Descricao do Produto
+                        oSB1Mod:setValue("B1_TIPO"   ,"ME"                                                  ) // Tipo de Produto (MP,PA,.)
+                        oSB1Mod:setValue("B1_UM"     ,aRegXML[59][03]                                       ) // Unidade de Medida
+                        oSB1Mod:setValue("B1_LOCPAD" ,"01"                                                  ) // Armazem Padrao p/Requis.
+                        oSB1Mod:setValue("B1_POSIPI" ,aRegXML[13][03]                                       ) // Nomenclatura Ext.Mercosul
+                        oSB1Mod:setValue("B1_ORIGEM" ,"0"                                                   ) // Origem do Produto
+                        oSB1Mod:setValue("B1_PESO"   ,Val(aRegXML[16][03])                                  ) // Peso Liquido
+                        oSB1Mod:setValue("B1_PESBRU" ,Val(aRegXML[17][03])                                  ) // Peso Bruto
 
                         If oModel:VldData()
                             If oModel:CommitData()
@@ -547,9 +562,9 @@ Static Function fwsProdutos()
                             AutoGrLog("Valor anterior: "             + ' [' + AllToChar(aErro[09]) + ']')
                             
                             cErro := aErro[06]
-                            fnGrvLog(cEndPoint,cBody,cResult,cErro,"Produto: " + aRegXML[04][03] + " - " +aRegXML[09][03],cValToChar(nOpc),"Integracao Produto")
+                            fnGrvLog(cEndPoint,cBody,cResult,cErro,"Erro Produto: " + aRegXML[04][03] + " - " +aRegXML[09][03],cValToChar(nOpc),"Integracao Produto")
                         Else
-                            fnGrvLog(cEndPoint,cBody,cResult,,"Erro Produto: " + aRegXML[04][03] + " - " +aRegXML[09][03],cValToChar(nOpc),"Integracao Produto")
+                            fnGrvLog(cEndPoint,cBody,cResult,,"Produto: " + aRegXML[04][03] + " - " +aRegXML[09][03],cValToChar(nOpc),"Integracao Produto")
                         EndIf
 
                         oModel:DeActivate()
@@ -582,6 +597,9 @@ Static Function fwsTabPreco()
     Local cBody     := ""
     Local cResult   := ""
     Local cErro     := ""
+    Local cQuery    := ""
+    Local cSeq      := ""
+    Local cAlias    := ""
     Local aRegXML   := {}
     Local aErro     := {}
     Local aRegDA0   := {}
@@ -647,57 +665,85 @@ Static Function fwsTabPreco()
                     
                     If !Empty(aRegXML)
 
-                        IF ! DA0->(MsSeek(xFilial("DA0") + StrZero(aRegXML[02][03], FWTamSX3("DA0_CODTAB")[1])))
-                            nOpc := 3
-                        Else
+                        IF DA0->(MsSeek(xFilial("DA0") + StrZero(Val(aRegXML[02][03]), FWTamSX3("DA0_CODTAB")[1])))
                             nOpc := 4
+                        Else
+                            nOpc := 3
                         EndIF 
                         
                         aRegDA0 := {}
+                        aLinha  := {}
                         aRegDA1 := {}
 
-                        aAdd(aRegDA0,{"DA0_CODTAB" , StrZero(aRegXML[02][03], FWTamSX3("DA0_CODTAB")[1]), Nil} ) // Codigo
-                        aAdd(aRegDA0,{"DA0_DESCRI" , aRegXML[03][03]                                    , Nil} ) // Descricao
-                        aAdd(aRegDA0,{"DA0_DATDE"  , FwDateTimeToLocal(aRegXML[12][03])[1]              , Nil} ) // Data Inicial
-                        aAdd(aRegDA0,{"DA0_HORADE" , FwDateTimeToLocal(aRegXML[12][03])[2]              , Nil} ) // Hora Inicial
-                        aAdd(aRegDA0,{"DA0_DATATE" , FwDateTimeToLocal(aRegXML[13][03])[1]              , Nil} ) // Data Final  
-                        aAdd(aRegDA0,{"DA0_HORATE" , FwDateTimeToLocal(aRegXML[13][03])[2]              , Nil} ) // Hora Final
+                        aAdd(aRegDA0,{"DA0_CODTAB" , StrZero(Val(aRegXML[02][03]), FWTamSX3("DA0_CODTAB")[1]), Nil} ) // Codigo
+                        aAdd(aRegDA0,{"DA0_DESCRI" , aRegXML[03][03]                                         , Nil} ) // Descricao
+                        aAdd(aRegDA0,{"DA0_DATDE"  , FwDateTimeToLocal(aRegXML[12][03])[1]                   , Nil} ) // Data Inicial
+                        aAdd(aRegDA0,{"DA0_HORADE" , SubStr(FwDateTimeToLocal(aRegXML[12][03])[2],1,5)       , Nil} ) // Hora Inicial
+                        aAdd(aRegDA0,{"DA0_DATATE" , FwDateTimeToLocal(aRegXML[13][03])[1]                   , Nil} ) // Data Final  
+                        aAdd(aRegDA0,{"DA0_HORATE" , SubStr(FwDateTimeToLocal(aRegXML[13][03])[2],1,5)       , Nil} ) // Hora Final
 
                         DA1->(DBGoTop())
-                        
-                        aLinha := {}
-                        
-                        IF ! DA1->(MsSeek(xFilial("DA1") + StrZero(aRegXML[02][03], FWTamSX3("DA0_CODTAB")[1]) + aRegXML[07][03] ))
-                            While DA1->(!Eof()) .And. StrZero(aRegXML[02][03], FWTamSX3("DA0_CODTAB")[1]) == DA1->DA1_CODTAB
+
+                        If nOpc == 4
+                            IF DA1->(MsSeek(xFilial("DA1") + StrZero(Val(aRegXML[02][03]), FWTamSX3("DA0_CODTAB")[1]) + Alltrim(aRegXML[07][03]) ))
                                 aLinha := {}
                                 aAdd(aLinha,{"LINPOS", "DA1_ITEM", DA1->DA1_ITEM})
-                                aAdd(aRegDA1,aLinha)
-                                DA1->(DBSkip())
-                            End 
-                            aAdd(aLinha,{"LINPOS", "DA1_ITEM", Soma1(DA1->DA1_ITEM)})
-                        Else 
-                            aAdd(aLinha,{"LINPOS", "DA1_ITEM", DA1->DA1_ITEM })
-                            aAdd(aLinha,{"AUTDELETA", "N", Nil})
+                                aAdd(aLinha,{"AUTDELETA", "N", Nil})
+                            Else
+                                DA1->(DBGoTop())
+                                IF DA1->(MsSeek(xFilial("DA1") + DA0->DA0_CODTAB))
+                                    While DA1->(!Eof()) .And. DA1->DA1_CODTAB == DA0->DA0_CODTAB
+                                        aLinha := {}
+                                        aAdd(aLinha,{"LINPOS", "DA1_ITEM", DA1->DA1_ITEM})
+                                        aAdd(aRegDA1,aLinha)
+                                        DA1->(DBSkip())
+                                    End
+                                EndIF 
+                                //Pega o ultimo item da DA1 e soma +1
+                                cAlias := Alias()
+                                cQuery := GetNextAlias()
+                                BeginSQL alias cQuery
+                                    SELECT MAX(DA1_ITEM) SEQ_MAX
+                                    FROM %table:DA1%
+                                    WHERE DA1_FILIAL = %xfilial:DA1%
+                                    AND DA1_CODTAB = %exp:DA0->DA0_CODTAB%
+                                    AND %notDel%
+                                EndSQL
+                                IF !(cQuery)->(Eof())
+                                    cSeq := Soma1((cQuery)->SEQ_MAX)
+                                EndIF
+                                (cQuery)->(DBCloseArea())
+                                IF !Empty(cAlias)
+                                    DBSelectArea(cAlias)
+                                EndIF
+                                //-------------------------------------
+                                aLinha  := {}
+                                aAdd(aLinha,{"DA1_ITEM", cSeq , Nil})
+                            EndIF
+                        ElseIF nOpc == 3
+                            aAdd(aLinha,{"DA1_ITEM", '0001', Nil})
                         EndIF 
 
-                        aAdd(aLinha,{"DA1_CODPRO", aRegXML[07][03]                                    , Nil} ) // Codigo do Produto
-                        aAdd(aLinha,{"DA1_PRCVEN", aRegXML[11][03]                                    , Nil} ) // Preco de venda
-                        aAdd(aLinha,{"DA1_ATIVO" , IIF(aRegXML[14][03] == "1","1","2")                , Nil} ) // Item Ativo (1=Sim;2=Nao)
-                        
+                        aAdd(aLinha,{"DA1_CODPRO", aRegXML[07][03]                       , Nil} ) // Codigo do Produto
+                        aAdd(aLinha,{"DA1_PRCVEN", Round(Val(aRegXML[11][03]),2)         , Nil} ) // Preco de venda
+                        aAdd(aLinha,{"DA1_ATIVO" , IIF(aRegXML[14][03] == "1","1","2")   , Nil} ) // Item Ativo (1=Sim;2=Nao)
+                        aAdd(aRegDA1,aLinha)
+
                         lMsErroAuto := .F.
 
-                        MSExecAuto({|x,y,z| Omsa010(x,y,z)},aCabec,aItens,nOpc)
+                        MSExecAuto({|x,y,z| Omsa010(x,y,z)},aRegDA0,aRegDA1,nOpc)
 
                         If lMsErroAuto
                             aErro := GetAutoGRLog()
+                            cErro := ""
                             
                             For nAux := 1 To Len(aErro)
                                 cErro += aErro[nAux] + CRLF
                             Next
                             
-                            fnGrvLog(cEndPoint,cBody,cResult,cErro,"Tabela de Preço: " + StrZero(aRegXML[02][03], FWTamSX3("DA0_CODTAB")[1]) + " - " +aRegXML[07][03],cValToChar(nOpc),"Integracao Tabela de Preço")
+                            fnGrvLog(cEndPoint,cBody,'',cErro,"Erro Tabela de Preço: " + StrZero(Val(aRegXML[02][03]), FWTamSX3("DA0_CODTAB")[1]) + " - " +aRegXML[07][03],cValToChar(nOpc),"Integracao Tabela de Preço")
                         Else
-                            fnGrvLog(cEndPoint,cBody,cResult,,"Erro Tabela de Preço: " + StrZero(aRegXML[02][03], FWTamSX3("DA0_CODTAB")[1]) + " - " +aRegXML[07][03],cValToChar(nOpc),"Integracao Tabela de Preço")
+                            fnGrvLog(cEndPoint,cBody,'',,"Tabela de Preço: " + StrZero(Val(aRegXML[02][03]), FWTamSX3("DA0_CODTAB")[1]) + " - " +aRegXML[07][03],cValToChar(nOpc),"Integracao Tabela de Preço")
                         EndIf
 
                     EndIF 
@@ -867,7 +913,7 @@ Static Function fwsPontoVenda()
                         IF ! SA1->(MsSeek(xFilial("SA1")+aRegXML[2,3]))
                             RecLock("SLG",.T.)
                                 SLG->LG_FILIAL  := xFilial("SLG")
-                                SLG->LG_CODIGO  := StrZero(aRegXML[02][03], FWTamSX3("LG_CODIGO")[1])
+                                SLG->LG_CODIGO  := StrZero(Val(aRegXML[02][03]), FWTamSX3("LG_CODIGO")[1])
                                 SLG->LG_NOME    := aRegXML[03][03]
                                 SLG->LG_NFCE    := .T.
                                 SLG->LG_PDV     := aRegXML[06][03]
@@ -2486,7 +2532,7 @@ Static Function fnGrvLog(pEndPoint,pBody,pResult,pErro,pDocto,pOper,pDscOper)
         Replace SZ1->Z1_DOCTO   with pDocto
         Replace SZ1->Z1_OPERACA with pOper
         Replace SZ1->Z1_DSCOPER with pDscOper
-        Replace SZ1->Z1_MENSAG  with IIF(!Empty(pResult),pResult,pErro)
+        Replace SZ1->Z1_MENSAG  with IIF(!Empty(pErro),pErro,pResult)
         Replace SZ1->Z1_STATUS  with IIF(!Empty(pResult),"S","E")
         Replace SZ1->Z1_ARQJSON with pBody
     SZ1->(MsUnlock())
