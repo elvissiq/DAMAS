@@ -13,7 +13,7 @@ User Function: DSOAPF01 - Função para Integração Via SOAP com o TOTVS Corpore RM
 @Permite
 Programa Fonte
 /*/
-User Function DSOAPF01(pCodProd,pLocPad,pEndpoint)
+User Function DSOAPF01(pEndpoint,pCodProd,pLocPad)
     Local aArea := FWGetArea()
     
     Private cUrl      := SuperGetMV("MV_XURLRM" ,.F.,"https://associacaodas145873.rm.cloudtotvs.com.br:1801")
@@ -368,33 +368,33 @@ Static Function fwsCliForR()
                         aRegXML[17][03] := StrTran(aRegXML[17][03],")","")
                         aRegXML[17][03] := Pad(Alltrim(aRegXML[17][03]),FWTamSX3("A1_TELEX")[1])
 
-                        oSA1Mod:setValue("A1_COD"    ,aRegXML[02][03]                                                       ) // Codigo
-                        oSA1Mod:setValue("A1_LOJA"   ,"01"                                                                  ) // Loja
-                        oSA1Mod:setValue("A1_PESSOA" ,aRegXML[24][03]                                                       ) // Pessoa Fisica/Juridica
-                        oSA1Mod:setValue("A1_TIPO"   ,"F"                                                                   ) // Tipo do Cliente (F=Cons.Final;L=Produtor Rural;R=Revendedor;S=Solidario;X=Exportacao)
-                        oSA1Mod:setValue("A1_CGC"    ,aRegXML[05][03]                                                       ) // CNPJ/CPF
-                        oSA1Mod:setValue("A1_INSCR"  ,aRegXML[06][03]                                                       ) // Inscricao Estadual
-                        oSA1Mod:setValue("A1_NOME"   ,Pad(aRegXML[04][03],FWTamSX3("A1_NOME")[1])                           ) // Nome
-                        oSA1Mod:setValue("A1_NREDUZ" ,Pad(aRegXML[03][03],FWTamSX3("A1_NREDUZ")[1])                         ) // Nome Fantasia
-                        oSA1Mod:setValue("A1_END"    ,Pad(aRegXML[08][03] + ", " + aRegXML[09][03] ,FWTamSX3("A1_END")[1])  ) // Endereco + Número
-                        oSA1Mod:setValue("A1_COMPENT",Pad(aRegXML[10][03],FWTamSX3("A1_COMPENT")[1])                        ) // Complemento
-                        oSA1Mod:setValue("A1_BAIRRO" ,Pad(aRegXML[11][03],FWTamSX3("A1_BAIRRO")[1])                         ) // Bairro
-                        oSA1Mod:setValue("A1_CEP"    ,aRegXML[14][03]                                                       ) // CEP
-                        oSA1Mod:setValue("A1_EST"    ,aRegXML[13][03]                                                       ) // Estado
-                        oSA1Mod:setValue("A1_COD_MUN",aRegXML[25][03]                                                       ) // Municipio
-                        oSA1Mod:setValue("A1_MUN"    ,aRegXML[12][03]                                                       ) // Municipio
-                        oSA1Mod:setValue("A1_TEL"    ,aRegXML[15][03]                                                       ) // Telefone
-                        oSA1Mod:setValue("A1_FAX"    ,aRegXML[16][03]                                                       ) // Numero do FAX
-                        oSA1Mod:setValue("A1_TELEX"  ,aRegXML[17][03]                                                       ) // Telex
-                        oSA1Mod:setValue("A1_EMAIL"  ,Pad(Alltrim(aRegXML[18][03]),FWTamSX3("A1_EMAIL")[1])                 ) // E-mail
-                        oSA1Mod:setValue("A1_CONTATO",Pad(Alltrim(aRegXML[19][03]),FWTamSX3("A1_CONTATO")[1])               ) // Contato
-                        oSA1Mod:setValue("A1_LC"     ,Val(aRegXML[20][03])                                                  ) // Limite de Credito
-                        oSA1Mod:setValue("A1_MSBLQL" ,IIF(aRegXML[19][03]=="1","2","1")                                     ) // Status (Ativo ou Inativo)
-                        If !Empty(Upper(aRegXML[23][03])) .And. SYA->(MSSeek(xFilial("SYA")+Upper(aRegXML[23][03]))         )
-                            oSA1Mod:LoadValue("A1_PAIS"   ,SYA->YA_CODGI                                                    ) // Codigo do País
+                        oSA1Mod:setValue("A1_COD"    ,aRegXML[02][03]                                                               ) // Codigo
+                        oSA1Mod:setValue("A1_LOJA"   ,"01"                                                                          ) // Loja
+                        oSA1Mod:setValue("A1_PESSOA" ,aRegXML[24][03]                                                               ) // Pessoa Fisica/Juridica
+                        oSA1Mod:setValue("A1_TIPO"   ,"F"                                                                           ) // Tipo do Cliente (F=Cons.Final;L=Produtor Rural;R=Revendedor;S=Solidario;X=Exportacao)
+                        oSA1Mod:setValue("A1_CGC"    ,aRegXML[05][03]                                                               ) // CNPJ/CPF
+                        oSA1Mod:setValue("A1_INSCR"  ,aRegXML[06][03]                                                               ) // Inscricao Estadual
+                        oSA1Mod:setValue("A1_NOME"   ,Upper(Pad(aRegXML[04][03],FWTamSX3("A1_NOME")[1]))                            ) // Nome
+                        oSA1Mod:setValue("A1_NREDUZ" ,Upper(Pad(aRegXML[03][03],FWTamSX3("A1_NREDUZ")[1]))                          ) // Nome Fantasia
+                        oSA1Mod:setValue("A1_END"    ,Upper(Pad(aRegXML[08][03] + ", " + aRegXML[09][03] ,FWTamSX3("A1_END")[1]))   ) // Endereco + Número
+                        oSA1Mod:setValue("A1_COMPENT",Upper(Pad(aRegXML[10][03],FWTamSX3("A1_COMPENT")[1]))                         ) // Complemento
+                        oSA1Mod:setValue("A1_BAIRRO" ,Upper(Pad(aRegXML[11][03],FWTamSX3("A1_BAIRRO")[1]))                          ) // Bairro
+                        oSA1Mod:setValue("A1_CEP"    ,aRegXML[14][03]                                                               ) // CEP
+                        oSA1Mod:setValue("A1_EST"    ,aRegXML[13][03]                                                               ) // Estado
+                        oSA1Mod:setValue("A1_COD_MUN",aRegXML[25][03]                                                               ) // Municipio
+                        oSA1Mod:setValue("A1_MUN"    ,aRegXML[12][03]                                                               ) // Municipio
+                        oSA1Mod:setValue("A1_TEL"    ,aRegXML[15][03]                                                               ) // Telefone
+                        oSA1Mod:setValue("A1_FAX"    ,aRegXML[16][03]                                                               ) // Numero do FAX
+                        oSA1Mod:setValue("A1_TELEX"  ,aRegXML[17][03]                                                               ) // Telex
+                        oSA1Mod:setValue("A1_EMAIL"  ,Pad(Alltrim(aRegXML[18][03]),FWTamSX3("A1_EMAIL")[1])                         ) // E-mail
+                        oSA1Mod:setValue("A1_CONTATO",Pad(Alltrim(aRegXML[19][03]),FWTamSX3("A1_CONTATO")[1])                       ) // Contato
+                        oSA1Mod:setValue("A1_LC"     ,Val(aRegXML[20][03])                                                          ) // Limite de Credito
+                        oSA1Mod:setValue("A1_MSBLQL" ,IIF(aRegXML[19][03]=="1","2","1")                                             ) // Status (Ativo ou Inativo)
+                        If !Empty(Upper(aRegXML[23][03])) .And. SYA->(MSSeek(xFilial("SYA")+Upper(aRegXML[23][03]))                 )
+                            oSA1Mod:LoadValue("A1_PAIS"   ,SYA->YA_CODGI                                                            ) // Codigo do País
                         EndIF
                         If !Empty(Upper(aRegXML[23][03])) .And. CCH->(MSSeek(xFilial("CCH")+Upper(aRegXML[23][03])))
-                            oSA1Mod:LoadValue("A1_CODPAIS",Alltrim(CCH->CCH_CODIGO)                                         ) // Codigo do País Bacen.
+                            oSA1Mod:LoadValue("A1_CODPAIS",Alltrim(CCH->CCH_CODIGO)                                                 ) // Codigo do País Bacen.
                         EndIF
 
                         If oModel:VldData()
