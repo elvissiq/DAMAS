@@ -3,7 +3,7 @@
 #INCLUDE "PARMTYPE.CH"
 //------------------------------------------------------------------------------
 /*{Protheus.doc} StValPro
-Função para validar se um determinado item poderá ser registrado no PDV
+Funï¿½ï¿½o para validar se um determinado item poderï¿½ ser registrado no PDV
 @param   	PARAMIXB
 @author     Elvis Siqueira
 @version    P12
@@ -24,9 +24,9 @@ User Function StValPro()
 	Private nSaldo   := 0
 	Private lErIntRM := .F.
 
-	U_DSOAPF01(cCodProd,cLocPad,"wsTprdLoc")
+	U_DSOAPF01("wsTprdLoc",cCodProd,cLocPad)
 
-	If lErIntRM //Caso ocorra erro na integração com o RM, consulta o estoque local.
+	If lErIntRM //Caso ocorra erro na integraï¿½ï¿½o com o RM, consulta o estoque local.
 		DBSelectArea("SB2")
 		SB2->(DBGoTop())
 		If SB2->(MSseek(xFilial("SB2")+cCodProd+cLocPad))
@@ -43,22 +43,20 @@ User Function StValPro()
     dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQry),_cAlias,.T.,.T.)
 
 	If ! (_cAlias)->(EoF())
-		nQtdTab := (_cAlias)->QUANT
+		IF ValType((_cAlias)->QUANT) == "N"
+			nQtdTab := (_cAlias)->QUANT
+		EndIF
 	EndIF 
 	(_cAlias)->(DbCloseArea()) 
 
-	IF ValType(nSaldo) == "N"
-		IF nSaldo >= (nQtdReg + nQtdTab)
-			lRet:= .T.
-		Else
-			STFMessage("ItemRegistered","STOP","ITEM NAO REGISTRADO - SALDO EM ESTOQUE INSUFICIENTE PARA O PRODUTO")
-		EndIF
-	Else 
-		IF nSaldo >= (nQtdReg + nQtdTab)
-			lRet:= .T.
-		Else
-			STFMessage("ItemRegistered","STOP","ITEM NAO REGISTRADO - SALDO EM ESTOQUE INSUFICIENTE PARA O PRODUTO")
-		EndIF
-	EndIF  
+	Do Case
+		Case ValType(nSaldo) == "N"
+			IF nSaldo >= (nQtdReg + nQtdTab)
+				lRet:= .T.
+			Else
+				STFMessage("ItemRegistered","STOP","ITEM NAO REGISTRADO - SALDO EM ESTOQUE INSUFICIENTE PARA O PRODUTO")
+				lRet:= .T.
+			EndIF
+	EndCase
 
 Return lRet
