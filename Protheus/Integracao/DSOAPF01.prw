@@ -6,7 +6,7 @@
 
 //-----------------------------------------------------------------------------------
 /*/{PROTHEUS.DOC} DSOAPF01
-User Function: DSOAPF01 - Função para Integração Via SOAP com o TOTVS Corpore RM
+User Function: DSOAPF01 - Funï¿½ï¿½o para Integraï¿½ï¿½o Via SOAP com o TOTVS Corpore RM
 @OWNER PanCristal
 @VERSION PROTHEUS 12
 @SINCE 10/07/2024
@@ -28,7 +28,7 @@ User Function DSOAPF01(pEndpoint,pCodProd,pLocPad)
 
     Default PARAMIXB  := {}
 
-    If Len(PARAMIXB) > 0
+    If Len(PARAMIXB) > 0 .And. !(IsInCallStack("U_StValPro"))
         cEndPoint := PARAMIXB[3]
     EndIf 
     
@@ -38,9 +38,9 @@ User Function DSOAPF01(pEndpoint,pCodProd,pLocPad)
         cCodEmp := AllTrim(XXD->XXD_COMPA)
         cCodFil :=  AllTrim(XXD->XXD_BRANCH)
     Else 
-        ApMsgStop("Coligada + Filial não encontrada no De/Para." + CRLF + CRLF +;
+        ApMsgStop("Coligada + Filial nï¿½o encontrada no De/Para." + CRLF + CRLF +;
                   "Por favor acessar a rotina De/Para de Empresas Mensagem Unica (APCFG050), no SIGACFG e cadastrar o De/Para." + CRLF + ;
-                  "Fonte DSOAPF01.prw", "Integração TOTVS Corpore RM")
+                  "Fonte DSOAPF01.prw", "Integraï¿½ï¿½o TOTVS Corpore RM")
         lErIntRM := .T.
         Return
     EndIF 
@@ -94,7 +94,7 @@ Return
 
 //------------------------------------------------------------------------------------------
 /*/{Protheus.doc} fwsCliFor
-Realiza a consulta de clientes através da API padrão RealizarConsultaSQL no RM (Completo)
+Realiza a consulta de clientes atravï¿½s da API padrï¿½o RealizarConsultaSQL no RM (Completo)
 /*/
 //------------------------------------------------------------------------------------------
 
@@ -194,7 +194,7 @@ Static Function fwsCliFor()
                         oSA1Mod:setValue("A1_INSCR"  ,aRegXML[06][03]                               ) // Inscricao Estadual
                         oSA1Mod:setValue("A1_NOME"   ,aRegXML[04][03]                               ) // Nome
                         oSA1Mod:setValue("A1_NREDUZ" ,Pad(aRegXML[03][03],FWTamSX3("A1_NREDUZ")[1]) ) // Nome Fantasia
-                        oSA1Mod:setValue("A1_END"    ,aRegXML[08][03] + ", " + aRegXML[09][03]      ) // Endereco + Número
+                        oSA1Mod:setValue("A1_END"    ,aRegXML[08][03] + ", " + aRegXML[09][03]      ) // Endereco + Nï¿½mero
                         oSA1Mod:setValue("A1_COMPENT",aRegXML[10][03]                               ) // Complemento
                         oSA1Mod:setValue("A1_BAIRRO" ,aRegXML[11][03]                               ) // Bairro
                         oSA1Mod:setValue("A1_CEP"    ,aRegXML[14][03]                               ) // CEP
@@ -209,10 +209,10 @@ Static Function fwsCliFor()
                         oSA1Mod:setValue("A1_LC"     ,Val(aRegXML[22][03])                          ) // Limite de Credito
                         oSA1Mod:setValue("A1_MSBLQL" ,IIF(aRegXML[21][03]=="1","2","1")             ) // Status (Ativo ou Inativo)
                         If !Empty(Upper(aRegXML[52][03])) .And. SYA->(MSSeek(xFilial("SYA")+Upper(aRegXML[52][03])))
-                            oSA1Mod:LoadValue("A1_PAIS"   ,SYA->YA_CODGI                            ) // Codigo do País
+                            oSA1Mod:LoadValue("A1_PAIS"   ,SYA->YA_CODGI                            ) // Codigo do Paï¿½s
                         EndIF
                         If !Empty(Upper(aRegXML[52][03])) .And. CCH->(MSSeek(xFilial("CCH")+Upper(aRegXML[52][03])))
-                            oSA1Mod:LoadValue("A1_CODPAIS",Alltrim(CCH->CCH_CODIGO)                 ) // Codigo do País Bacen.
+                            oSA1Mod:LoadValue("A1_CODPAIS",Alltrim(CCH->CCH_CODIGO)                 ) // Codigo do Paï¿½s Bacen.
                         EndIF
 
                         If oModel:VldData()
@@ -227,14 +227,14 @@ Static Function fwsCliFor()
 
                         If ! lOk
                             aErro := oModel:GetErrorMessage()
-                            AutoGrLog("Id do formulário de origem:"  + ' [' + AllToChar(aErro[01]) + ']')
+                            AutoGrLog("Id do formulï¿½rio de origem:"  + ' [' + AllToChar(aErro[01]) + ']')
                             AutoGrLog("Id do campo de origem: "      + ' [' + AllToChar(aErro[02]) + ']')
-                            AutoGrLog("Id do formulário de erro: "   + ' [' + AllToChar(aErro[03]) + ']')
+                            AutoGrLog("Id do formulï¿½rio de erro: "   + ' [' + AllToChar(aErro[03]) + ']')
                             AutoGrLog("Id do campo de erro: "        + ' [' + AllToChar(aErro[04]) + ']')
                             AutoGrLog("Id do erro: "                 + ' [' + AllToChar(aErro[05]) + ']')
                             AutoGrLog("Mensagem do erro: "           + ' [' + AllToChar(aErro[06]) + ']')
-                            AutoGrLog("Mensagem da solução: "        + ' [' + AllToChar(aErro[07]) + ']')
-                            AutoGrLog("Valor atribuído: "            + ' [' + AllToChar(aErro[08]) + ']')
+                            AutoGrLog("Mensagem da soluï¿½ï¿½o: "        + ' [' + AllToChar(aErro[07]) + ']')
+                            AutoGrLog("Valor atribuï¿½do: "            + ' [' + AllToChar(aErro[08]) + ']')
                             AutoGrLog("Valor anterior: "             + ' [' + AllToChar(aErro[09]) + ']')
                             
                             cErro := aErro[06]
@@ -261,7 +261,7 @@ Return
 
 //------------------------------------------------------------------------------------------
 /*/{Protheus.doc} fwsCliForR
-Realiza a consulta de clientes através da API padrão RealizarConsultaSQL no RM (Resumido)
+Realiza a consulta de clientes atravï¿½s da API padrï¿½o RealizarConsultaSQL no RM (Resumido)
 /*/
 //------------------------------------------------------------------------------------------
 
@@ -376,7 +376,7 @@ Static Function fwsCliForR()
                         oSA1Mod:setValue("A1_INSCR"  ,aRegXML[06][03]                                                               ) // Inscricao Estadual
                         oSA1Mod:setValue("A1_NOME"   ,Upper(Pad(aRegXML[04][03],FWTamSX3("A1_NOME")[1]))                            ) // Nome
                         oSA1Mod:setValue("A1_NREDUZ" ,Upper(Pad(aRegXML[03][03],FWTamSX3("A1_NREDUZ")[1]))                          ) // Nome Fantasia
-                        oSA1Mod:setValue("A1_END"    ,Upper(Pad(aRegXML[08][03] + ", " + aRegXML[09][03] ,FWTamSX3("A1_END")[1]))   ) // Endereco + Número
+                        oSA1Mod:setValue("A1_END"    ,Upper(Pad(aRegXML[08][03] + ", " + aRegXML[09][03] ,FWTamSX3("A1_END")[1]))   ) // Endereco + Nï¿½mero
                         oSA1Mod:setValue("A1_COMPENT",Upper(Pad(aRegXML[10][03],FWTamSX3("A1_COMPENT")[1]))                         ) // Complemento
                         oSA1Mod:setValue("A1_BAIRRO" ,Upper(Pad(aRegXML[11][03],FWTamSX3("A1_BAIRRO")[1]))                          ) // Bairro
                         oSA1Mod:setValue("A1_CEP"    ,aRegXML[14][03]                                                               ) // CEP
@@ -391,10 +391,10 @@ Static Function fwsCliForR()
                         oSA1Mod:setValue("A1_LC"     ,Val(aRegXML[20][03])                                                          ) // Limite de Credito
                         oSA1Mod:setValue("A1_MSBLQL" ,IIF(aRegXML[19][03]=="1","2","1")                                             ) // Status (Ativo ou Inativo)
                         If !Empty(Upper(aRegXML[23][03])) .And. SYA->(MSSeek(xFilial("SYA")+Upper(aRegXML[23][03]))                 )
-                            oSA1Mod:LoadValue("A1_PAIS"   ,SYA->YA_CODGI                                                            ) // Codigo do País
+                            oSA1Mod:LoadValue("A1_PAIS"   ,SYA->YA_CODGI                                                            ) // Codigo do Paï¿½s
                         EndIF
                         If !Empty(Upper(aRegXML[23][03])) .And. CCH->(MSSeek(xFilial("CCH")+Upper(aRegXML[23][03])))
-                            oSA1Mod:LoadValue("A1_CODPAIS",Alltrim(CCH->CCH_CODIGO)                                                 ) // Codigo do País Bacen.
+                            oSA1Mod:LoadValue("A1_CODPAIS",Alltrim(CCH->CCH_CODIGO)                                                 ) // Codigo do Paï¿½s Bacen.
                         EndIF
 
                         If oModel:VldData()
@@ -409,14 +409,14 @@ Static Function fwsCliForR()
 
                         If ! lOk
                             aErro := oModel:GetErrorMessage()
-                            AutoGrLog("Id do formulário de origem:"  + ' [' + AllToChar(aErro[01]) + ']')
+                            AutoGrLog("Id do formulï¿½rio de origem:"  + ' [' + AllToChar(aErro[01]) + ']')
                             AutoGrLog("Id do campo de origem: "      + ' [' + AllToChar(aErro[02]) + ']')
-                            AutoGrLog("Id do formulário de erro: "   + ' [' + AllToChar(aErro[03]) + ']')
+                            AutoGrLog("Id do formulï¿½rio de erro: "   + ' [' + AllToChar(aErro[03]) + ']')
                             AutoGrLog("Id do campo de erro: "        + ' [' + AllToChar(aErro[04]) + ']')
                             AutoGrLog("Id do erro: "                 + ' [' + AllToChar(aErro[05]) + ']')
                             AutoGrLog("Mensagem do erro: "           + ' [' + AllToChar(aErro[06]) + ']')
-                            AutoGrLog("Mensagem da solução: "        + ' [' + AllToChar(aErro[07]) + ']')
-                            AutoGrLog("Valor atribuído: "            + ' [' + AllToChar(aErro[08]) + ']')
+                            AutoGrLog("Mensagem da soluï¿½ï¿½o: "        + ' [' + AllToChar(aErro[07]) + ']')
+                            AutoGrLog("Valor atribuï¿½do: "            + ' [' + AllToChar(aErro[08]) + ']')
                             AutoGrLog("Valor anterior: "             + ' [' + AllToChar(aErro[09]) + ']')
                             
                             cErro := aErro[06]
@@ -443,7 +443,7 @@ Return
 
 //------------------------------------------------------------------------------------------
 /*/{Protheus.doc} fwsProdutos
-Realiza a consulta de Produtos através da API padrão RealizarConsultaSQL no RM
+Realiza a consulta de Produtos atravï¿½s da API padrï¿½o RealizarConsultaSQL no RM
 /*/
 //------------------------------------------------------------------------------------------
 
@@ -551,14 +551,14 @@ Static Function fwsProdutos()
 
                         If ! lOk
                             aErro := oModel:GetErrorMessage()
-                            AutoGrLog("Id do formulário de origem:"  + ' [' + AllToChar(aErro[01]) + ']')
+                            AutoGrLog("Id do formulï¿½rio de origem:"  + ' [' + AllToChar(aErro[01]) + ']')
                             AutoGrLog("Id do campo de origem: "      + ' [' + AllToChar(aErro[02]) + ']')
-                            AutoGrLog("Id do formulário de erro: "   + ' [' + AllToChar(aErro[03]) + ']')
+                            AutoGrLog("Id do formulï¿½rio de erro: "   + ' [' + AllToChar(aErro[03]) + ']')
                             AutoGrLog("Id do campo de erro: "        + ' [' + AllToChar(aErro[04]) + ']')
                             AutoGrLog("Id do erro: "                 + ' [' + AllToChar(aErro[05]) + ']')
                             AutoGrLog("Mensagem do erro: "           + ' [' + AllToChar(aErro[06]) + ']')
-                            AutoGrLog("Mensagem da solução: "        + ' [' + AllToChar(aErro[07]) + ']')
-                            AutoGrLog("Valor atribuído: "            + ' [' + AllToChar(aErro[08]) + ']')
+                            AutoGrLog("Mensagem da soluï¿½ï¿½o: "        + ' [' + AllToChar(aErro[07]) + ']')
+                            AutoGrLog("Valor atribuï¿½do: "            + ' [' + AllToChar(aErro[08]) + ']')
                             AutoGrLog("Valor anterior: "             + ' [' + AllToChar(aErro[09]) + ']')
                             
                             cErro := aErro[06]
@@ -585,7 +585,7 @@ Return
 
 //------------------------------------------------------------------------------------------
 /*/{Protheus.doc} fwsTabPreco
-Realiza a consulta da Tabela de Preço através da API padrão RealizarConsultaSQL no RM
+Realiza a consulta da Tabela de Preï¿½o atravï¿½s da API padrï¿½o RealizarConsultaSQL no RM
 /*/
 //------------------------------------------------------------------------------------------
 
@@ -741,9 +741,9 @@ Static Function fwsTabPreco()
                                 cErro += aErro[nAux] + CRLF
                             Next
                             
-                            fnGrvLog(cEndPoint,cBody,'',cErro,"Erro Tabela de Preço: " + StrZero(Val(aRegXML[02][03]), FWTamSX3("DA0_CODTAB")[1]) + " - " +aRegXML[07][03],cValToChar(nOpc),"Integracao Tabela de Preço")
+                            fnGrvLog(cEndPoint,cBody,'',cErro,"Erro Tabela de Preï¿½o: " + StrZero(Val(aRegXML[02][03]), FWTamSX3("DA0_CODTAB")[1]) + " - " +aRegXML[07][03],cValToChar(nOpc),"Integracao Tabela de Preï¿½o")
                         Else
-                            fnGrvLog(cEndPoint,cBody,'',,"Tabela de Preço: " + StrZero(Val(aRegXML[02][03]), FWTamSX3("DA0_CODTAB")[1]) + " - " +aRegXML[07][03],cValToChar(nOpc),"Integracao Tabela de Preço")
+                            fnGrvLog(cEndPoint,cBody,'',,"Tabela de Preï¿½o: " + StrZero(Val(aRegXML[02][03]), FWTamSX3("DA0_CODTAB")[1]) + " - " +aRegXML[07][03],cValToChar(nOpc),"Integracao Tabela de Preï¿½o")
                         EndIf
 
                     EndIF 
@@ -763,7 +763,7 @@ Return
 
 //-----------------------------------------------------------------------------
 /*/{Protheus.doc} fwsTprdLoc
-Realiza a consulta de estoque através da API padrão employeeDataContent no RM
+Realiza a consulta de estoque atravï¿½s da API padrï¿½o employeeDataContent no RM
 /*/
 //-----------------------------------------------------------------------------
 
@@ -843,7 +843,7 @@ Return
 
 //------------------------------------------------------------------------------------------
 /*/{Protheus.doc} fwsPontoVenda
-Realiza a consulta de Ponto de Venda através da API padrão RealizarConsultaSQL no RM
+Realiza a consulta de Ponto de Venda atravï¿½s da API padrï¿½o RealizarConsultaSQL no RM
 /*/
 //------------------------------------------------------------------------------------------
 
@@ -944,7 +944,7 @@ Return
 
 //------------------------------------------------------------------------------------------
 /*/{Protheus.doc} fwsPrdCodBarras
-Realiza a consulta do Código de Barras através da API padrão RealizarConsultaSQL no RM
+Realiza a consulta do Cï¿½digo de Barras atravï¿½s da API padrï¿½o RealizarConsultaSQL no RM
 /*/
 //------------------------------------------------------------------------------------------
 
@@ -1046,7 +1046,7 @@ Return
 
 //------------------------------------------------------------------------------------------
 /*/{Protheus.doc} fwsVendedor
-Realiza a consulta do Vendedor/Operador através da API padrão RealizarConsultaSQL no RM
+Realiza a consulta do Vendedor/Operador atravï¿½s da API padrï¿½o RealizarConsultaSQL no RM
 /*/
 //------------------------------------------------------------------------------------------
 
@@ -1216,14 +1216,14 @@ Static Function fwsVendedor()
 
                         If ! lOk
                             aErro := oModel:GetErrorMessage()
-                            AutoGrLog("Id do formulário de origem:"  + ' [' + AllToChar(aErro[01]) + ']')
+                            AutoGrLog("Id do formulï¿½rio de origem:"  + ' [' + AllToChar(aErro[01]) + ']')
                             AutoGrLog("Id do campo de origem: "      + ' [' + AllToChar(aErro[02]) + ']')
-                            AutoGrLog("Id do formulário de erro: "   + ' [' + AllToChar(aErro[03]) + ']')
+                            AutoGrLog("Id do formulï¿½rio de erro: "   + ' [' + AllToChar(aErro[03]) + ']')
                             AutoGrLog("Id do campo de erro: "        + ' [' + AllToChar(aErro[04]) + ']')
                             AutoGrLog("Id do erro: "                 + ' [' + AllToChar(aErro[05]) + ']')
                             AutoGrLog("Mensagem do erro: "           + ' [' + AllToChar(aErro[06]) + ']')
-                            AutoGrLog("Mensagem da solução: "        + ' [' + AllToChar(aErro[07]) + ']')
-                            AutoGrLog("Valor atribuído: "            + ' [' + AllToChar(aErro[08]) + ']')
+                            AutoGrLog("Mensagem da soluï¿½ï¿½o: "        + ' [' + AllToChar(aErro[07]) + ']')
+                            AutoGrLog("Valor atribuï¿½do: "            + ' [' + AllToChar(aErro[08]) + ']')
                             AutoGrLog("Valor anterior: "             + ' [' + AllToChar(aErro[09]) + ']')
                             
                             cErro := aErro[06]
@@ -1256,7 +1256,7 @@ Return
 
 //-----------------------------------------------------------------------------
 /*/{Protheus.doc} fEnvNFeVend
-Realiza o envio da Nota Fiscal de Saída para o Copore RM
+Realiza o envio da Nota Fiscal de Saï¿½da para o Copore RM
 /*/
 //-----------------------------------------------------------------------------
 
@@ -1288,8 +1288,8 @@ Static Function fEnvNFeVend()
     cBody += '                                  <CODCOLIGADA>'+ cCodEmp +'</CODCOLIGADA> '
     cBody += '                                  <IDMOV>-1</IDMOV> '
     cBody += '                                  <CODFILIAL>' + cCodFil + '</CODFILIAL> '
-    cBody += '                                  <CODLOC>' + cLocEstoq + '</CODLOC> ' //Código do Local de Destino
-    cBody += '                                  <CODCFO>' + SF1->F1_FORNECE + '</CODCFO> ' //Código do Cliente / Fornecedor
+    cBody += '                                  <CODLOC>' + cLocEstoq + '</CODLOC> ' //Cï¿½digo do Local de Destino
+    cBody += '                                  <CODCFO>' + SF1->F1_FORNECE + '</CODCFO> ' //Cï¿½digo do Cliente / Fornecedor
     cBody += '                                  <NUMEROMOV>' + SF1->F1_DOC + '</NUMEROMOV> '
     cBody += '                                  <SERIE>' + SF1->F1_SERIE + '</SERIE> '
     cBody += '                                  <CODTMV>2.2.25</CODTMV> '
@@ -1323,7 +1323,7 @@ Static Function fEnvNFeVend()
     cBody += '                                  <NUMEROLCTABERTO>1</NUMEROLCTABERTO> '
     cBody += '                                  <FRETECIFOUFOB>9</FRETECIFOUFOB> '
     cBody += '                                  <CODCFOAUX>CXXXXXXXXXX</CODCFOAUX> '
-    cBody += '                                  <CODCCUSTO></CODCCUSTO> ' //Não terá Centro de Custo no cabeçalho
+    cBody += '                                  <CODCCUSTO></CODCCUSTO> ' //Nï¿½o terï¿½ Centro de Custo no cabeï¿½alho
     cBody += '                                  <PERCCOMISSAOVEN2>0,0000</PERCCOMISSAOVEN2> '
     cBody += '                                  <CODCOLCFO>0</CODCOLCFO> '
     cBody += '                                  <CODUSUARIO>' + cUser + '</CODUSUARIO> '
@@ -1389,7 +1389,7 @@ Static Function fEnvNFeVend()
     cBody += '                              <TMOVRATCCU> '
     cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
     cBody += '                                  <IDMOV>-1</IDMOV> '
-    cBody += '                                  <CODCCUSTO></CODCCUSTO> ' //Não terá Centro de Custo no cabeçalho
+    cBody += '                                  <CODCCUSTO></CODCCUSTO> ' //Nï¿½o terï¿½ Centro de Custo no cabeï¿½alho
     cBody += '                                  <NOME></NOME> '
     cBody += '                                  <VALOR></VALOR> '
     cBody += '                                  <IDMOVRATCCU>-1</IDMOVRATCCU> '
@@ -1495,7 +1495,7 @@ Static Function fEnvNFeVend()
         cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
         cBody += '                                  <IDMOV>-1</IDMOV> '
         cBody += '                                  <NSEQITMMOV></NSEQITMMOV> '
-        cBody += '                                  <CODCCUSTO></CODCCUSTO> ' //Rateio de Centro de Custo do Item não terá
+        cBody += '                                  <CODCCUSTO></CODCCUSTO> ' //Rateio de Centro de Custo do Item nï¿½o terï¿½
         cBody += '                                  <VALOR></VALOR> '
         cBody += '                                  <IDMOVRATCCU>-1</IDMOVRATCCU> '
         cBody += '                              </TITMMOVRATCCU> '
@@ -1609,8 +1609,8 @@ Static Function fEnvNFeDev()
     cBody += '                                  <CODCOLIGADA>'+ cCodEmp +'</CODCOLIGADA> '
     cBody += '                                  <IDMOV>-1</IDMOV> '
     cBody += '                                  <CODFILIAL>' + cCodFil + '</CODFILIAL> '
-    cBody += '                                  <CODLOC>' + cLocEstoq + '</CODLOC> ' //Código do Local de Destino
-    cBody += '                                  <CODCFO>' + SF1->F1_FORNECE + '</CODCFO> ' //Código do Cliente / Fornecedor
+    cBody += '                                  <CODLOC>' + cLocEstoq + '</CODLOC> ' //Cï¿½digo do Local de Destino
+    cBody += '                                  <CODCFO>' + SF1->F1_FORNECE + '</CODCFO> ' //Cï¿½digo do Cliente / Fornecedor
     cBody += '                                  <NUMEROMOV>' + SF1->F1_DOC + '</NUMEROMOV> '
     cBody += '                                  <SERIE>' + SF1->F1_SERIE + '</SERIE> '
     cBody += '                                  <CODTMV>2.2.25</CODTMV> '
@@ -1644,7 +1644,7 @@ Static Function fEnvNFeDev()
     cBody += '                                  <NUMEROLCTABERTO>1</NUMEROLCTABERTO> '
     cBody += '                                  <FRETECIFOUFOB>9</FRETECIFOUFOB> '
     cBody += '                                  <SEGUNDONUMERO></SEGUNDONUMERO> '
-    cBody += '                                  <CODCCUSTO></CODCCUSTO> ' //Não terá Centro de Custo no cabeçalho
+    cBody += '                                  <CODCCUSTO></CODCCUSTO> ' //Nï¿½o terï¿½ Centro de Custo no cabeï¿½alho
     cBody += '                                  <PERCCOMISSAOVEN2>0,0000</PERCCOMISSAOVEN2> '
     cBody += '                                  <CODCOLCFO>0</CODCOLCFO> '
     cBody += '                                  <CODUSUARIO>' + cUser + '</CODUSUARIO> '
@@ -1693,7 +1693,7 @@ Static Function fEnvNFeDev()
     cBody += '                                  <PERCCOMISSAOVEN3>0.0000</PERCCOMISSAOVEN3> '
     cBody += '                                  <PERCCOMISSAOVEN4>0.0000</PERCCOMISSAOVEN4> '
     cBody += '                                  <STATUSMOVINCLUSAOCOLAB>0</STATUSMOVINCLUSAOCOLAB> '
-    cBody += '                                  <IDMOVRELAC>' + " " + '</IDMOVRELAC> ' //Verificar o ID Relacionado da NF de Saída
+    cBody += '                                  <IDMOVRELAC>' + " " + '</IDMOVRELAC> ' //Verificar o ID Relacionado da NF de Saï¿½da
     cBody += '                              </TMOV> '
     cBody += '                              <TNFE> '
     cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
@@ -1718,7 +1718,7 @@ Static Function fEnvNFeDev()
     cBody += '                              <TMOVRATCCU> '
     cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
     cBody += '                                  <IDMOV>-1</IDMOV> '
-    cBody += '                                  <CODCCUSTO></CODCCUSTO> ' //Não terá Centro de Custo no cabeçalho
+    cBody += '                                  <CODCCUSTO></CODCCUSTO> ' //Nï¿½o terï¿½ Centro de Custo no cabeï¿½alho
     cBody += '                                  <NOME></NOME> '
     cBody += '                                  <VALOR></VALOR> '
     cBody += '                                  <IDMOVRATCCU>-1</IDMOVRATCCU> '
@@ -1747,7 +1747,7 @@ Static Function fEnvNFeDev()
     cBody += '                                  <VALOR></VALOR> '
     cBody += '                                  <DEBITOCREDITO></DEBITOCREDITO> '
     cBody += '                              </TMOVPAGTO> '
-    //Itens da Nota Fiscal de Entrada (Devolução)
+    //Itens da Nota Fiscal de Entrada (Devoluï¿½ï¿½o)
     DBSelectArea("SD1")
     IF SD1->(MsSeek(SF1->F1_FILIAL + SF1->F1_DOC + SF1->F1_SERIE + SF1->F1_FORNECE + SF1->F1_LOJA))
         While !SD1->(Eof()) .AND. ( SD1->D1_FILIAL  == SF1->F1_FILIAL ); 
@@ -1817,7 +1817,7 @@ Static Function fEnvNFeDev()
             cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
             cBody += '                                  <IDMOV>-1</IDMOV> '
             cBody += '                                  <NSEQITMMOV></NSEQITMMOV> '
-            cBody += '                                  <CODCCUSTO></CODCCUSTO> ' //Rateio de Centro de Custo do Item não terá
+            cBody += '                                  <CODCCUSTO></CODCCUSTO> ' //Rateio de Centro de Custo do Item nï¿½o terï¿½
             cBody += '                                  <VALOR></VALOR> '
             cBody += '                                  <IDMOVRATCCU>-1</IDMOVRATCCU> '
             cBody += '                              </TITMMOVRATCCU> '
@@ -2060,7 +2060,7 @@ Static Function fCanFinan()
     cBody := ' 							<DisableIsolateProcess xmlns="http://www.totvs.com/">false</DisableIsolateProcess> '
     cBody := ' 							<DriverType i:nil="true" xmlns="http://www.totvs.com/" /> '
     cBody := ' 							<ExecutionId xmlns="http://www.totvs.com/">d2344acc-51e6-487e-bbeb-7e0074c291bd</ExecutionId> '
-    cBody := ' 							<FailureMessage xmlns="http://www.totvs.com/">Falha na execução do processo</FailureMessage> '
+    cBody := ' 							<FailureMessage xmlns="http://www.totvs.com/">Falha na execuï¿½ï¿½o do processo</FailureMessage> '
     cBody := ' 							<FriendlyLogs i:nil="true" xmlns="http://www.totvs.com/" /> '
     cBody := ' 							<HideProgressDialog xmlns="http://www.totvs.com/">false</HideProgressDialog> '
     cBody := ' 							<HostName xmlns="http://www.totvs.com/">RECN019403717</HostName> '
@@ -2297,7 +2297,7 @@ Static Function fCanMovim()
     cBody := ' 							<DisableIsolateProcess xmlns="http://www.totvs.com/">false</DisableIsolateProcess> '
     cBody := ' 							<DriverType i:nil="true" xmlns="http://www.totvs.com/" /> '
     cBody := ' 							<ExecutionId xmlns="http://www.totvs.com/">d2344acc-51e6-487e-bbeb-7e0074c291bd</ExecutionId> '
-    cBody := ' 							<FailureMessage xmlns="http://www.totvs.com/">Falha na execução do processo</FailureMessage> '
+    cBody := ' 							<FailureMessage xmlns="http://www.totvs.com/">Falha na execuï¿½ï¿½o do processo</FailureMessage> '
     cBody := ' 							<FriendlyLogs i:nil="true" xmlns="http://www.totvs.com/" /> '
     cBody := ' 							<HideProgressDialog xmlns="http://www.totvs.com/">false</HideProgressDialog> '
     cBody := ' 							<HostName xmlns="http://www.totvs.com/">RECN019403717</HostName> '
@@ -2496,7 +2496,7 @@ Return aRet
 
 //-----------------------------------------------------------------------------
 /*/{Protheus.doc} fnGrvLog
-Grava o LOG de integração na tabela SZ1 - Log de Integração Protheus x RM
+Grava o LOG de integraï¿½ï¿½o na tabela SZ1 - Log de Integraï¿½ï¿½o Protheus x RM
 /*/
 //-----------------------------------------------------------------------------
 
