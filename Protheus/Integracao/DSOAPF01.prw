@@ -6,7 +6,7 @@
 
 //-----------------------------------------------------------------------------------
 /*/{PROTHEUS.DOC} DSOAPF01
-User Function: DSOAPF01 - Funï¿½ï¿½o para Integraï¿½ï¿½o Via SOAP com o TOTVS Corpore RM
+User Function: DSOAPF01 - Função para Integração Via SOAP com o TOTVS Corpore RM
 @OWNER PanCristal
 @VERSION PROTHEUS 12
 @SINCE 10/07/2024
@@ -38,9 +38,9 @@ User Function DSOAPF01(pEndpoint,pCodProd,pLocPad)
         cCodEmp := AllTrim(XXD->XXD_COMPA)
         cCodFil :=  AllTrim(XXD->XXD_BRANCH)
     Else 
-        ApMsgStop("Coligada + Filial nï¿½o encontrada no De/Para." + CRLF + CRLF +;
+        ApMsgStop("Coligada + Filial não encontrada no De/Para." + CRLF + CRLF +;
                   "Por favor acessar a rotina De/Para de Empresas Mensagem Unica (APCFG050), no SIGACFG e cadastrar o De/Para." + CRLF + ;
-                  "Fonte DSOAPF01.prw", "Integraï¿½ï¿½o TOTVS Corpore RM")
+                  "Fonte DSOAPF01.prw", "Integração TOTVS Corpore RM")
         lErIntRM := .T.
         Return
     EndIF 
@@ -94,7 +94,7 @@ Return
 
 //------------------------------------------------------------------------------------------
 /*/{Protheus.doc} fwsCliFor
-Realiza a consulta de clientes atravï¿½s da API padrï¿½o RealizarConsultaSQL no RM (Completo)
+Realiza a consulta de clientes atraves da API padrï¿½o RealizarConsultaSQL no RM (Completo)
 /*/
 //------------------------------------------------------------------------------------------
 
@@ -538,6 +538,7 @@ Static Function fwsProdutos()
                         oSB1Mod:setValue("B1_ORIGEM" ,"0"                                                   ) // Origem do Produto
                         oSB1Mod:setValue("B1_PESO"   ,Val(aRegXML[16][03])                                  ) // Peso Liquido
                         oSB1Mod:setValue("B1_PESBRU" ,Val(aRegXML[17][03])                                  ) // Peso Bruto
+                        oSB1Mod:setValue("B1_PESBRU" ,Val(aRegXML[17][03])                                  ) // Peso Bruto
 
                         If oModel:VldData()
                             If oModel:CommitData()
@@ -763,7 +764,7 @@ Return
 
 //-----------------------------------------------------------------------------
 /*/{Protheus.doc} fwsTprdLoc
-Realiza a consulta de estoque atravï¿½s da API padrï¿½o employeeDataContent no RM
+Realiza a consulta de estoque atraves da API employeeDataContent no RM
 /*/
 //-----------------------------------------------------------------------------
 
@@ -798,14 +799,14 @@ Static Function fwsTprdLoc(pCodProd,pLocPad)
     oWsdl:lVerbose         := .T.
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
-        STFMessage("ItemRegistered","STOP","Error: " + DecodeUTF8(oWsdl:cError, "cp1252"))
+        //STFMessage("ItemRegistered","STOP","Error: " + DecodeUTF8(oWsdl:cError, "cp1252"))
         lErIntRM := .T.
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
-            STFMessage("ItemRegistered","STOP","Falha no objeto XML retornado pelo TOTVS Corpore RM : "+DecodeUTF8(oWsdl:cError, "cp1252"))
+            //STFMessage("ItemRegistered","STOP","Falha no objeto XML retornado pelo TOTVS Corpore RM : "+DecodeUTF8(oWsdl:cError, "cp1252"))
             fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Armazem: "+cLocEstoq+", Produto: "+cCodProd,"2","Integracao Estoque")
             lErIntRM := .T.
             Return
@@ -817,7 +818,7 @@ Static Function fwsTprdLoc(pCodProd,pLocPad)
             oXml := TXmlManager():New()
 
             If !oXML:Parse( cResult )
-                STFMessage("ItemRegistered","STOP","Falha ao gerar objeto XML : " + oXML:Error())
+                //STFMessage("ItemRegistered","STOP","Falha ao gerar objeto XML : " + oXML:Error())
                 fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Armazem: "+cLocEstoq+", Produto: "+cCodProd,"2","Integracao Estoque")
             else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
