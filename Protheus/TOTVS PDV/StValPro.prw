@@ -13,7 +13,8 @@ Fun��o para validar se um determinado item poder� ser registrado no PDV
 //------------------------------------------------------------------------------
 User Function StValPro()
 
-	Local lRet     := .F.
+	Local lRet     := .T.
+	Local lEstNeg  := IIF(SuperGetMV("MV_ESTNEG") == "S",.T.,.F.)
 	Local cCodProd := PARAMIXB[1]
 	Local cLocPad  := SuperGetMV("MV_LOCPAD",.F.,"")
 	Local nQtdReg  := PARAMIXB[2]
@@ -51,11 +52,9 @@ User Function StValPro()
 
 	Do Case
 		Case ValType(nSaldo) == "N"
-			IF nSaldo >= (nQtdReg + nQtdTab)
-				lRet:= .T.
-			Else
+			IF nSaldo < (nQtdReg + nQtdTab) .And. !(lEstNeg)
 				STFMessage("ItemRegistered","STOP","ITEM NAO REGISTRADO - SALDO EM ESTOQUE INSUFICIENTE PARA O PRODUTO")
-				lRet:= .T.
+				lRet := .F.
 			EndIF
 	EndCase
 
