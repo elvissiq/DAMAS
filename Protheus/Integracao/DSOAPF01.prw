@@ -21,13 +21,13 @@ User Function DSOAPF01(pEndpoint,pCodProd,pLocPad)
     Default pCodProd  := ""
     Default pLocPad   := ""
 
-    If Len(PARAMIXB) > 0 .And. !( IsInCallStack("U_StValPro") .Or. IsInCallStack("U_INTTSTRM") .Or. IsInCallStack("U_MT103FIM") .Or. IsInCallStack("U_M460FIM") )
+    If ValType(pEndpoint) == "A" .And. IsInCallStack("WFLAUNCHER")
         RpcClearEnv()
         RpcSetType(3) 
-        RpcSetEnv(PARAMIXB[1], PARAMIXB[2], "Administrador", , "LOJA")
+        RpcSetEnv(pEndpoint[1], pEndpoint[2], "Administrador", , "LOJA")
     ElseIF !Empty(pEndpoint)
         cEndPoint := pEndpoint
-    Else
+    ElseIF Len(PARAMIXB) > 0
         cEndPoint := PARAMIXB[1] 
     EndIf
 
@@ -1239,6 +1239,10 @@ Realiza o envio da Nota Fiscal de Saida para o Copore RM
 
 Static Function fEnvNFeVend()
 
+    Local aArea    := FWGetArea()
+    Local aAreaSF2 := SF2->(FWGetArea())
+    Local aAreaSD2 := SD2->(FWGetArea())
+    Local aAreaSL1 := SL1->(FWGetArea())
     Local oWsdl as Object
     Local oXml as Object 
     Local cPath     := "/wsDataServer/MEX?wsdl"
@@ -1248,16 +1252,8 @@ Static Function fEnvNFeVend()
     Local cIDMovRet := ""
     Local aRetCons  := {}
 
-    DBSelectArea("SL1")
-    SL1->(DBSetOrder(2))
-    IF !SL1->(MsSeek(SF2->F2_FILIAL + SF2->F2_SERIE ))
-        Return
-    EndIF 
-    
     DBSelectArea("SL2")
-    IF SL2->(MsSeek(SL1->L1_FILIAL + SL1->L1_NUM ))
-        cLocEstoq := SL2->L2_LOCAL
-    Else
+    IF !SL2->(MsSeek(SL1->L1_FILIAL + SL1->L1_NUM ))
         Return
     EndIF 
 
@@ -1274,17 +1270,17 @@ Static Function fEnvNFeVend()
     cBody += '                                  <IDMOV>-1</IDMOV> '
     cBody += '                                  <CODFILIAL>' + cCodFil + '</CODFILIAL> '
     cBody += '                                  <CODLOC>' + cLocEstoq + '</CODLOC> ' //Codigo do Local de Destino
-    cBody += '                                  <CODCFO>' + SF1->F1_FORNECE + '</CODCFO> ' //Codigo do Cliente / Fornecedor
-    cBody += '                                  <NUMEROMOV>' + SF1->F1_DOC + '</NUMEROMOV> '
-    cBody += '                                  <SERIE>' + SF1->F1_SERIE + '</SERIE> '
+    cBody += '                                  <CODCFO>' + SL1->L1_CLIENTE + '</CODCFO> ' //Codigo do Cliente / Fornecedor
+    cBody += '                                  <NUMEROMOV>' + SL1->L1_DOC + '</NUMEROMOV> '
+    cBody += '                                  <SERIE>' + SL1->L1_SERIE + '</SERIE> '
     cBody += '                                  <CODTMV>2.2.25</CODTMV> '
     cBody += '                                  <TIPO>P</TIPO> '
     cBody += '                                  <STATUS>Q</STATUS> '
     cBody += '                                  <MOVIMPRESSO>0</MOVIMPRESSO> '
     cBody += '                                  <DOCIMPRESSO>0</DOCIMPRESSO> '
     cBody += '                                  <FATIMPRESSA>0</FATIMPRESSA> '
-    cBody += '                                  <DATAEMISSAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA )  )+ '</DATAEMISSAO> '
-    cBody += '                                  <DATASAIDA>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA )  )+ '</DATASAIDA> '
+    cBody += '                                  <DATAEMISSAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SF2->F2_HORA )  )+ '</DATAEMISSAO> '
+    cBody += '                                  <DATASAIDA>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SF2->F2_HORA )  )+ '</DATASAIDA> '
     cBody += '                                  <COMISSAOREPRES>0,0000</COMISSAOREPRES> '
     cBody += '                                  <VALORBRUTO>' + Alltrim(AlltoChar(SL1->L1_VALBRUT, cPicVal)) + '</VALORBRUTO> '
     cBody += '                                  <VALORLIQUIDO>' + Alltrim(AlltoChar(SL1->L1_VLRLIQ, cPicVal)) + '</VALORLIQUIDO> '
@@ -1302,7 +1298,7 @@ Static Function fEnvNFeVend()
     cBody += '                                  <CODTB4FLX></CODTB4FLX> '
     cBody += '                                  <IDMOVLCTFLUXUS>-1</IDMOVLCTFLUXUS> '
     cBody += '                                  <CODMOEVALORLIQUIDO>R$</CODMOEVALORLIQUIDO> '
-    cBody += '                                  <DATAMOVIMENTO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA )  )+ '</DATAMOVIMENTO> '
+    cBody += '                                  <DATAMOVIMENTO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SF2->F2_HORA )  )+ '</DATAMOVIMENTO> '
     cBody += '                                  <NUMEROLCTGERADO>1</NUMEROLCTGERADO> '
     cBody += '                                  <GEROUFATURA>0</GEROUFATURA> '
     cBody += '                                  <NUMEROLCTABERTO>1</NUMEROLCTABERTO> '
@@ -1320,28 +1316,28 @@ Static Function fEnvNFeVend()
     cBody += '                                  <IDNAT>19</IDNAT> ' //Verificar esse ID NAT 
     cBody += '                                  <GEROUCONTATRABALHO>0</GEROUCONTATRABALHO> '
     cBody += '                                  <GERADOPORCONTATRABALHO>0</GERADOPORCONTATRABALHO> '
-    cBody += '                                  <HORULTIMAALTERACAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA )  )+ '</HORULTIMAALTERACAO> '
+    cBody += '                                  <HORULTIMAALTERACAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SF2->F2_HORA )  )+ '</HORULTIMAALTERACAO> '
     cBody += '                                  <INDUSOOBJ>0.00</INDUSOOBJ> '
     cBody += '                                  <INTEGRADOBONUM>0</INTEGRADOBONUM> '
     cBody += '                                  <FLAGPROCESSADO>0</FLAGPROCESSADO> '
     cBody += '                                  <ABATIMENTOICMS>0,0000</ABATIMENTOICMS> '
-    cBody += '                                  <HORARIOEMISSAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA) )+ '</HORARIOEMISSAO> '
+    cBody += '                                  <HORARIOEMISSAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SF2->F2_HORA) )+ '</HORARIOEMISSAO> '
     cBody += '                                  <USUARIOCRIACAO>' + cUser + '</USUARIOCRIACAO> '
-    cBody += '                                  <DATACRIACAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA) )+ '</DATACRIACAO> '
+    cBody += '                                  <DATACRIACAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SF2->F2_HORA) )+ '</DATACRIACAO> '
     cBody += '                                  <STSEMAIL>0</STSEMAIL> '
     cBody += '                                  <VALORBRUTOINTERNO>' + Alltrim(AlltoChar(SL1->L1_VALBRUT, cPicVal)) + '</VALORBRUTOINTERNO> '
     cBody += '                                  <VINCULADOESTOQUEFL>0</VINCULADOESTOQUEFL> '
-    cBody += '                                  <HORASAIDA>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA) )+ '</HORASAIDA> '
+    cBody += '                                  <HORASAIDA>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SF2->F2_HORA) )+ '</HORASAIDA> '
     cBody += '                                  <VRBASEINSSOUTRAEMPRESA>0,0000</VRBASEINSSOUTRAEMPRESA> '
     cBody += '                                  <CODTDO>65</CODTDO> '
     cBody += '                                  <VALORDESCCONDICIONAL>0,0000</VALORDESCCONDICIONAL> '
     cBody += '                                  <VALORDESPCONDICIONAL>0,0000</VALORDESPCONDICIONAL> '
-    cBody += '                                  <DATACONTABILIZACAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA) )+ '</DATACONTABILIZACAO> '
+    cBody += '                                  <DATACONTABILIZACAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SF2->F2_HORA) )+ '</DATACONTABILIZACAO> '
     cBody += '                                  <INTEGRADOAUTOMACAO>0</INTEGRADOAUTOMACAO> '
     cBody += '                                  <INTEGRAAPLICACAO>T</INTEGRAAPLICACAO> '
-    cBody += '                                  <DATALANCAMENTO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA) )+ '</DATALANCAMENTO> '
+    cBody += '                                  <DATALANCAMENTO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SF2->F2_HORA) )+ '</DATALANCAMENTO> '
     cBody += '                                  <RECIBONFESTATUS>0</RECIBONFESTATUS> '
-    cBody += '                                  <VALORMERCADORIAS>' + SL1->L1_VALMERC + '</VALORMERCADORIAS> '
+    cBody += '                                  <VALORMERCADORIAS>' + Alltrim(AlltoChar(SL1->L1_VALMERC, cPicVal)) + '</VALORMERCADORIAS> '
     cBody += '                                  <USARATEIOVALORFIN>1</USARATEIOVALORFIN> '
     cBody += '                                  <CODCOLCFOAUX>0</CODCOLCFOAUX> '
     cBody += '                                  <VALORRATEIOLAN>' + Alltrim(AlltoChar(SL1->L1_VLRLIQ, cPicVal)) + '</VALORRATEIOLAN> '
@@ -1367,7 +1363,7 @@ Static Function fEnvNFeVend()
     cBody += '                                  <IDMOV>-1</IDMOV> '
     cBody += '                                  <CONTRIBUINTECREDENCIADO>0</CONTRIBUINTECREDENCIADO> '
     cBody += '                                  <OPERACAOCONSUMIDORFINAL>1</OPERACAOCONSUMIDORFINAL> '
-    cBody += '                                  <DATAINICIOCREDITO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA) ) + '</DATAINICIOCREDITO> '
+    cBody += '                                  <DATAINICIOCREDITO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SF2->F2_HORA) ) + '</DATAINICIOCREDITO> '
     cBody += '                                  <OPERACAOPRESENCIAL>0</OPERACAOPRESENCIAL> '
     cBody += '                                  <NROSAT>'+Alltrim(SL1->L1_SERSAT)+'</NROSAT> '
     cBody += '                              </TMOVFISCAL> '
@@ -1404,13 +1400,13 @@ Static Function fEnvNFeVend()
             cBody += '                                  <CODCOLCXA></CODCOLCXA> '
             cBody += '                                  <IDLAN>-1</IDLAN> '
             cBody += '                                  <NOMEREDE></NOMEREDE> '
-            cBody += '                                  <NSU>'+ SL4->L4_NSUTEF +'</NSU> '
+            cBody += '                                  <NSU>'+ AllTrim(SL4->L4_NSUTEF) +'</NSU> '
             cBody += '                                  <QTDEPARCELAS>0</QTDEPARCELAS> '
             cBody += '                                  <IDFORMAPAGTO></IDFORMAPAGTO> '
-            cBody += '                                  <DATAVENCIMENTO>'+ ( FWTimeStamp(3, SL4->L4_DATA , SL1->L1_HORA) ) +'</DATAVENCIMENTO> '
+            cBody += '                                  <DATAVENCIMENTO>'+ ( FWTimeStamp(3, SL4->L4_DATA , SF2->F2_HORA) ) +'</DATAVENCIMENTO> '
             cBody += '                                  <TIPOPAGAMENTO></TIPOPAGAMENTO> '
             cBody += '                                  <VALOR>'+ Alltrim(AlltoChar(SL4->L4_VALOR, cPicVal)) +'</VALOR> '
-            cBody += '                                  <DEBITOCREDITO>'+IIF(Alltrim(SL4-L4_FORMA) == "CC", "C", IIF(Alltrim(SL4-L4_FORMA) == "CD", "D",""))+'</DEBITOCREDITO> '
+            cBody += '                                  <DEBITOCREDITO>'+IIF(Alltrim(SL4->L4_FORMA) == "CC", "C", IIF(Alltrim(SL4->L4_FORMA) == "CD", "D",""))+'</DEBITOCREDITO> '
             cBody += '                              </TMOVPAGTO> '
         SL4->(DBSkip())
         End
@@ -1431,15 +1427,15 @@ Static Function fEnvNFeVend()
         cBody += '                                  <PRECOTABELA>0,0000</PRECOTABELA> '
         cBody += '                                  <PERCENTUALDESC>0,0000</PERCENTUALDESC> '
         cBody += '                                  <VALORDESC>0,0000</VALORDESC> '
-        cBody += '                                  <DATAEMISSAO>'+ ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA) ) +'</DATAEMISSAO> '
-        cBody += '                                  <CODUND>' + SL2->L2_UM + '</CODUND> '
+        cBody += '                                  <DATAEMISSAO>'+ ( FWTimeStamp(3, SL1->L1_EMISNF , SF2->F2_HORA) ) +'</DATAEMISSAO> '
+        cBody += '                                  <CODUND>' + Alltrim(SL2->L2_UM) + '</CODUND> '
         cBody += '                                  <QUANTIDADEARECEBER>' + Alltrim(AlltoChar(SL2->L2_QUANT, cPicVal)) + '</QUANTIDADEARECEBER> '
         cBody += '                                  <FLAGEFEITOSALDO>1</FLAGEFEITOSALDO> '
         cBody += '                                  <VALORUNITARIO>' + Alltrim(AlltoChar(SL2->L2_VLRITEM, cPicVal)) + '</VALORUNITARIO> '
         cBody += '                                  <VALORFINANCEIRO>' + Alltrim(AlltoChar(SL2->L2_VLRITEM, cPicVal)) + '</VALORFINANCEIRO> '
         cBody += '                                  <CODCCUSTO>' + SL2->L2_CCUSTO + '</CODCCUSTO> '
         cBody += '                                  <ALIQORDENACAO>0,0000</ALIQORDENACAO> '
-        cBody += '                                  <QUANTIDADEORIGINAL>' + SL2->L2_QUANT + '</QUANTIDADEORIGINAL> '
+        cBody += '                                  <QUANTIDADEORIGINAL>' + Alltrim(AlltoChar(SL2->L2_QUANT, cPicVal)) + '</QUANTIDADEORIGINAL> '
         cBody += '                                  <IDNAT>42</IDNAT> '
         cBody += '                                  <FLAG>0</FLAG> '
         cBody += '                                  <FATORCONVUND>0,0000</FATORCONVUND> '
@@ -1463,7 +1459,7 @@ Static Function fEnvNFeVend()
         cBody += '                                  <RATEIODESP>0,0000</RATEIODESP> '
         cBody += '                                  <VALORUNTORCAMENTO>0,0000</VALORUNTORCAMENTO> '
         cBody += '                                  <VALSERVICONFE>0,0000</VALSERVICONFE> '
-        cBody += '                                  <CODLOC>' + SL2->L2_LOCAL + '</CODLOC> '
+        cBody += '                                  <CODLOC>' + Alltrim(SL2->L2_LOCAL) + '</CODLOC> '
         cBody += '                                  <VALORBEM>0,0000</VALORBEM> '
         cBody += '                                  <VALORLIQUIDO>' + Alltrim(AlltoChar(SL2->L2_VRUNIT, cPicVal)) + '</VALORLIQUIDO> '
         cBody += '                                  <RATEIOCCUSTODEPTO></RATEIOCCUSTODEPTO> '
@@ -1522,13 +1518,14 @@ Static Function fEnvNFeVend()
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+        fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"SL1 - "+SL1->L1_NUM,"3","NF Saida")
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"SL1 - "+SL1->L1_NUM,"3","Integracao NFC-e")
+            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"SL1 - "+SL1->L1_NUM,"3","NF Saida")
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -1539,7 +1536,7 @@ Static Function fEnvNFeVend()
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                fnGrvLog(cEndPoint,cBody,"",oXML:Error(),"SL1 - "+SL1->L1_NUM,"3","Integracao NFC-e")
+                fnGrvLog(cEndPoint,cBody,"",oXML:Error(),"SL1 - "+SL1->L1_NUM,"3","NF Saida")
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -1558,11 +1555,16 @@ Static Function fEnvNFeVend()
                         SL1->(MSUnlock())
                     EndIF 
                 EndIF 
-                fnGrvLog(cEndPoint,cBody,cResult,"","SL1 - "+SL1->L1_NUM,"3","Integracao NFC-e")
+                fnGrvLog(cEndPoint,cBody,cResult,"","SL1 - "+SL1->L1_NUM,"3","NF Saida")
             Endif
 
         EndIf
     EndIF 
+
+    FWRestArea(aAreaSL1)
+    FWRestArea(aAreaSD2)
+    FWRestArea(aAreaSF2)
+    FWRestArea(aArea)  
     
 Return
 
@@ -1573,7 +1575,10 @@ Realiza o envio da Nota Fiscal de Entrada para o Copore RM
 //-----------------------------------------------------------------------------
 
 Static Function fEnvNFeDev()
-
+    Local aArea    := FWGetArea()
+    Local aAreaSF1 := SF1->(FWGetArea())
+    Local aAreaSD1 := SD1->(FWGetArea())
+    Local aAreaSL1 := SL1->(FWGetArea())
     Local oWsdl as Object
     Local oXml as Object 
     Local cPath     := "/wsDataServer/MEX?wsdl"
@@ -1594,11 +1599,12 @@ Static Function fEnvNFeDev()
     cBody += '                                  <CODCOLIGADA>'+ cCodEmp +'</CODCOLIGADA> '
     cBody += '                                  <IDMOV>-1</IDMOV> '
     cBody += '                                  <CODFILIAL>' + cCodFil + '</CODFILIAL> '
-    cBody += '                                  <CODLOC>' + cLocEstoq + '</CODLOC> ' //Codigo do Local de Destino
+    cBody += '                                  <CODLOC>' + cLocEstoq + '</CODLOC> ' //Codigo do Local
+    cBody += '                                  <CODLOCDESTINO>' + cLocEstoq + '</CODLOCDESTINO> ' //Codigo do Local de Destino
     cBody += '                                  <CODCFO>' + SF1->F1_FORNECE + '</CODCFO> ' //Codigo do Cliente / Fornecedor
     cBody += '                                  <NUMEROMOV>' + SF1->F1_DOC + '</NUMEROMOV> '
     cBody += '                                  <SERIE>' + SF1->F1_SERIE + '</SERIE> '
-    cBody += '                                  <CODTMV>2.2.25</CODTMV> '
+    cBody += '                                  <CODTMV>2.2.22</CODTMV> '
     cBody += '                                  <TIPO>P</TIPO> '
     cBody += '                                  <STATUS>F</STATUS> '
     cBody += '                                  <MOVIMPRESSO>0</MOVIMPRESSO> '
@@ -1619,8 +1625,9 @@ Static Function fEnvNFeDev()
     cBody += '                                  <PERCCOMISSAO>0,0000</PERCCOMISSAO> '
     cBody += '                                  <PESOLIQUIDO>0,0000</PESOLIQUIDO> '
     cBody += '                                  <PESOBRUTO>0,0000</PESOBRUTO> '
-    cBody += '                                  <CODTB1FLX></CODTB1FLX> '
-    cBody += '                                  <CODTB4FLX></CODTB4FLX> '
+    cBody += '                                  <CODTB1FLX></CODTB1FLX> ' // aQUI
+    cBody += '                                  <CODTB3FLX></CODTB4FLX> ' // aQUI
+    cBody += '                                  <CODTB4FLX></CODTB4FLX> ' // aQUI
     cBody += '                                  <IDMOVLCTFLUXUS>-1</IDMOVLCTFLUXUS> '
     cBody += '                                  <CODMOEVALORLIQUIDO>R$</CODMOEVALORLIQUIDO> '
     cBody += '                                  <DATAMOVIMENTO>' + ( FWTimeStamp(3, SF1->F1_EMISSAO , SF1->F1_HORA )  )+ '</DATAMOVIMENTO> '
@@ -1628,7 +1635,7 @@ Static Function fEnvNFeDev()
     cBody += '                                  <GEROUFATURA>0</GEROUFATURA> '
     cBody += '                                  <NUMEROLCTABERTO>1</NUMEROLCTABERTO> '
     cBody += '                                  <FRETECIFOUFOB>9</FRETECIFOUFOB> '
-    cBody += '                                  <SEGUNDONUMERO></SEGUNDONUMERO> '
+    cBody += '                                  <SEGUNDONUMERO></SEGUNDONUMERO> ' // aQUI
     cBody += '                                  <CODCCUSTO></CODCCUSTO> ' //Nao tera Centro de Custo no cabecalho
     cBody += '                                  <PERCCOMISSAOVEN2>0,0000</PERCCOMISSAOVEN2> '
     cBody += '                                  <CODCOLCFO>0</CODCOLCFO> '
@@ -1670,13 +1677,13 @@ Static Function fEnvNFeDev()
     cBody += '                                  <RATEIOCCUSTODEPTO>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</RATEIOCCUSTODEPTO> '
     cBody += '                                  <VALORBRUTOORIG>' + AllTrim(AlltoChar(SF1->F1_VALBRUT, cPicVal)) + '</VALORBRUTOORIG> '
     cBody += '                                  <VALORLIQUIDOORIG>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</VALORLIQUIDOORIG> '
-    cBody += '                                  <VALOROUTROSORIG>0,0000</VALOROUTROSORIG> '
-    cBody += '                                  <VALORRATEIOLANORIG>0,0000</VALORRATEIOLANORIG> '
+    cBody += '                                  <VALOROUTROSORIG>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</VALOROUTROSORIG> '
+    cBody += '                                  <VALORRATEIOLANORIG>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</VALORRATEIOLANORIG> '
     cBody += '                                  <FLAGCONCLUSAO>0</FLAGCONCLUSAO> '
     cBody += '                                  <STATUSPARADIGMA>N</STATUSPARADIGMA> '
     cBody += '                                  <STATUSINTEGRACAO>N</STATUSINTEGRACAO> '
-    cBody += '                                  <PERCCOMISSAOVEN3>0.0000</PERCCOMISSAOVEN3> '
-    cBody += '                                  <PERCCOMISSAOVEN4>0.0000</PERCCOMISSAOVEN4> '
+    cBody += '                                  <PERCCOMISSAOVEN3>0,0000</PERCCOMISSAOVEN3> '
+    cBody += '                                  <PERCCOMISSAOVEN4>0,0000</PERCCOMISSAOVEN4> '
     cBody += '                                  <STATUSMOVINCLUSAOCOLAB>0</STATUSMOVINCLUSAOCOLAB> '
     cBody += '                                  <IDMOVRELAC>' + " " + '</IDMOVRELAC> ' //Verificar o ID Relacionado da NF de Saida
     cBody += '                              </TMOV> '
@@ -1719,6 +1726,7 @@ Static Function fEnvNFeDev()
     cBody += '                                  <IDSEQPAGTO>-1</IDSEQPAGTO> '
     cBody += '                                  <IDMOV>-1</IDMOV> '
     cBody += '                                  <TIPOFORMAPAGTO></TIPOFORMAPAGTO> '
+    cBody += '                                  <CODCOLCFO>0</CODCOLCFO> '
     cBody += '                                  <TAXAADM>0,0000</TAXAADM> '
     cBody += '                                  <CODCXA></CODCXA> '
     cBody += '                                  <CODCOLCXA></CODCOLCXA> '
@@ -1743,9 +1751,9 @@ Static Function fEnvNFeDev()
             cBody += '                              <TITMMOV> '
             cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
             cBody += '                                  <IDMOV>-1</IDMOV>  '
-            cBody += '                                  <NSEQITMMOV>' + SD1->D1_ITEM +  '</NSEQITMMOV> '
+            cBody += '                                  <NSEQITMMOV>' + AllTrim(SD1->D1_ITEM) +  '</NSEQITMMOV> '
             cBody += '                                  <CODFILIAL>' + cCodFil + '</CODFILIAL> '
-            cBody += '                                  <NUMEROSEQUENCIAL>' + SD1->D1_ITEM +  '</NUMEROSEQUENCIAL> '
+            cBody += '                                  <NUMEROSEQUENCIAL>' + AllTrim(SD1->D1_ITEM) +  '</NUMEROSEQUENCIAL> '
             cBody += '                                  <IDPRD>' + Alltrim(Posicione('SB1',1,xFilial('SB1')+SD1->D1_COD,"B1_XIDRM")) + '</IDPRD> '
             cBody += '                                  <NUMNOFABRIC></NUMNOFABRIC> '
             cBody += '                                  <QUANTIDADE>' + AllTrim(AlltoChar(SD1->D1_QUANT, cPicVal)) + '</QUANTIDADE> '
@@ -1754,19 +1762,19 @@ Static Function fEnvNFeDev()
             cBody += '                                  <PERCENTUALDESC>0,0000</PERCENTUALDESC> '
             cBody += '                                  <VALORDESC>0,0000</VALORDESC> '
             cBody += '                                  <DATAEMISSAO>'+ ( FWTimeStamp(3, SF1->F1_EMISSAO , SF1->F1_HORA) ) +'</DATAEMISSAO> '
-            cBody += '                                  <CODUND>' + SD1->D1_UM + '</CODUND> '
+            cBody += '                                  <CODUND>' + AllTrim(SD1->D1_UM) + '</CODUND> '
             cBody += '                                  <QUANTIDADEARECEBER>' + AllTrim(AlltoChar(SD1->D1_QUANT, cPicVal)) + '</QUANTIDADEARECEBER> '
             cBody += '                                  <FLAGEFEITOSALDO>1</FLAGEFEITOSALDO> '
             cBody += '                                  <VALORUNITARIO>' + AllTrim(AlltoChar(SD1->D1_TOTAL, cPicVal)) + '</VALORUNITARIO> '
             cBody += '                                  <VALORFINANCEIRO>' + AllTrim(AlltoChar(SD1->D1_TOTAL, cPicVal)) + '</VALORFINANCEIRO> '
-            cBody += '                                  <CODCCUSTO>' + SD1->D1_CC + '</CODCCUSTO> '
+            cBody += '                                  <CODCCUSTO>' + AllTrim(SD1->D1_CC) + '</CODCCUSTO> '
             cBody += '                                  <ALIQORDENACAO>0,0000</ALIQORDENACAO> '
             cBody += '                                  <QUANTIDADEORIGINAL>' + AllTrim(AlltoChar(SD1->D1_QUANT, cPicVal)) + '</QUANTIDADEORIGINAL> '
             cBody += '                                  <IDNAT>42</IDNAT> '
             cBody += '                                  <FLAG>0</FLAG> '
             cBody += '                                  <FATORCONVUND>0,0000</FATORCONVUND> '
             cBody += '                                  <VALORBRUTOITEM>' + AllTrim(AlltoChar(SD1->D1_VUNIT, cPicVal)) + '</VALORBRUTOITEM> '
-            cBody += '                                  <VALORTOTALITEM>0,0000000000</VALORTOTALITEM> '
+            cBody += '                                  <VALORTOTALITEM>' + AllTrim(AlltoChar(SD1->D1_TOTAL, cPicVal)) + '</VALORTOTALITEM> '
             cBody += '                                  <QUANTIDADESEPARADA>0,0000</QUANTIDADESEPARADA> '
             cBody += '                                  <COMISSAOREPRES>0,0000</COMISSAOREPRES> '
             cBody += '                                  <VALORESCRITURACAO>0,0000</VALORESCRITURACAO> '
@@ -1785,10 +1793,10 @@ Static Function fEnvNFeDev()
             cBody += '                                  <RATEIODESP>0,0000</RATEIODESP> '
             cBody += '                                  <VALORUNTORCAMENTO>0,0000</VALORUNTORCAMENTO> '
             cBody += '                                  <VALSERVICONFE>0,0000</VALSERVICONFE> '
-            cBody += '                                  <CODLOC>' + SD1->D1_LOCAL + '</CODLOC> '
+            cBody += '                                  <CODLOC>' + AllTrim(SD1->D1_LOCAL) + '</CODLOC> '
             cBody += '                                  <VALORBEM>0,0000</VALORBEM> '
             cBody += '                                  <VALORLIQUIDO>' + AllTrim(AlltoChar(SD1->D1_VUNIT, cPicVal)) + '</VALORLIQUIDO> '
-            cBody += '                                  <RATEIOCCUSTODEPTO></RATEIOCCUSTODEPTO> '
+            cBody += '                                  <RATEIOCCUSTODEPTO>' + AllTrim(AlltoChar(SD1->D1_VUNIT, cPicVal)) + '</RATEIOCCUSTODEPTO> '
             cBody += '                                  <VALORBRUTOITEMORIG>' + AllTrim(AlltoChar(SD1->D1_VUNIT, cPicVal)) + '</VALORBRUTOITEMORIG> '
             cBody += '                                  <CODNATUREZAITEM></CODNATUREZAITEM> '
             cBody += '                                  <QUANTIDADETOTAL>' + AllTrim(AlltoChar(SD1->D1_QUANT, cPicVal)) + '</QUANTIDADETOTAL> '
@@ -1798,50 +1806,30 @@ Static Function fEnvNFeDev()
             cBody += '                                  <VALORBASEDEPRECIACAOBEM>0,0000</VALORBASEDEPRECIACAOBEM> '
             cBody += '                                  <IDMOVSOLICITACAOMNT>0</IDMOVSOLICITACAOMNT> ' 
             cBody += '                              </TITMMOV> '
-            cBody += '                              <TITMMOVRATCCU> '
-            cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
-            cBody += '                                  <IDMOV>-1</IDMOV> '
-            cBody += '                                  <NSEQITMMOV></NSEQITMMOV> '
-            cBody += '                                  <CODCCUSTO></CODCCUSTO> ' //Nao tera Rateio de Centro de Custo no Item
-            cBody += '                                  <VALOR></VALOR> '
-            cBody += '                                  <IDMOVRATCCU>-1</IDMOVRATCCU> '
-            cBody += '                              </TITMMOVRATCCU> '
-            cBody += '                              <TMOVCOMPL> '
-            cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
-            cBody += '                                  <IDMOV>-1</IDMOV> '
-            cBody += '                              </TMOVCOMPL> '
-            cBody += '                              <TITMMOVFISCAL> '
-            cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
-            cBody += '                                  <IDMOV>-1</IDMOV> '
-            cBody += '                                  <NSEQITMMOV>1</NSEQITMMOV> '
-            cBody += '                                  <VLRTOTTRIB>0,0000</VLRTOTTRIB> '
-            cBody += '                                  <VALORIBPTFEDERAL>0,0000</VALORIBPTFEDERAL> '
-            cBody += '                                  <VALORIBPTESTADUAL>0,0000</VALORIBPTESTADUAL> '
-            cBody += '                                  <VALORIBPTMUNICIPAL>0,0000</VALORIBPTMUNICIPAL> '
-            cBody += '                                  <AQUISICAOPAA>0</AQUISICAOPAA> '
-            cBody += '                              </TITMMOVFISCAL> '
-            cBody += '                              <TMOVRELAC> '
-            cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
-            cBody += '                                  <IDMOVORIGEM>-1</IDMOVORIGEM> '
-            cBody += '                                  <CODCOLDESTINO>' + cCodEmp + '</CODCOLDESTINO> '
-            cBody += '                                  <IDMOVDESTINO></IDMOVDESTINO> ' //Identificador de Referencia
-            cBody += '                                  <TIPORELAC>V</TIPORELAC> '
-            cBody += '                                  <IDPROCESSO>-1</IDPROCESSO> '
-            cBody += '                                  <VALORRECEBIDO>0</VALORRECEBIDO> '
-            cBody += '                              </TMOVRELAC> '
-            cBody += '                              <TITMMOVRELAC> '
-            cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
-            cBody += '                                  <IDMOVORIGEM>-1</IDMOVORIGEM> '
-            cBody += '                                  <NSEQITMMOVORIGEM>1</NSEQITMMOVORIGEM> '
-            cBody += '                                  <CODCOLDESTINO>' + cCodEmp + '</CODCOLDESTINO> '
-            cBody += '                                  <IDMOVDESTINO></IDMOVDESTINO> ' //Identificador de Referencia
-            cBody += '                                  <NSEQITMMOVDESTINO>1</NSEQITMMOVDESTINO> '
-            cBody += '                                  <QUANTIDADE>0,00000</QUANTIDADE> ' //Quantidade ?
-            cBody += '                                  <VALORRECEBIDO>0</VALORRECEBIDO> ' //Valor Recebido ?
-            cBody += '                              </TITMMOVRELAC> '
         SD1->(DBSkip())
         EndDo 
+        SD1->(MsSeek(SF1->F1_FILIAL + SF1->F1_DOC + SF1->F1_SERIE + SF1->F1_FORNECE + SF1->F1_LOJA))
+        DBSelectArea("SL1")
+        SL1->(DBSetOrder(3))
+        SL1->(MsSeek(SD1->D1_FILIAL + SD1->D1_NFORI + SD1->D1_SERIORI))
     EndIF
+    cBody += '                              <TITMMOVRATCCU> '
+    cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
+    cBody += '                                  <IDMOV>-1</IDMOV> '
+    cBody += '                                  <NSEQITMMOV></NSEQITMMOV> '
+    cBody += '                                  <CODCCUSTO></CODCCUSTO> ' //Nao tera Rateio de Centro de Custo no Item
+    cBody += '                                  <VALOR></VALOR> '
+    cBody += '                                  <IDMOVRATCCU>-1</IDMOVRATCCU> '
+    cBody += '                              </TITMMOVRATCCU> '
+    cBody += '                              <TMOVCOMPL> '
+    cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
+    cBody += '                                  <IDMOV>-1</IDMOV> '
+    cBody += '                              </TMOVCOMPL> '
+    cBody += '                              <TITMMOVCOMPL> '
+    cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
+    cBody += '                                  <IDMOV>-1</IDMOV> '
+    cBody += '                                  <NSEQITMMOV>1</NSEQITMMOV> '
+    cBody += '                              </TITMMOVCOMPL> '
     cBody += '                              <TMOVTRANSP> '
     cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
     cBody += '                                  <IDMOV>-1</IDMOV> '
@@ -1861,19 +1849,48 @@ Static Function fEnvNFeDev()
     cBody += '                                  <QUANTIDADENOTAS>0</QUANTIDADENOTAS> '
     cBody += '                                  <QUANTIDADERATEADAS>0</QUANTIDADERATEADAS> '
     cBody += '                              </TCTRCMOV> '
+    cBody += '                              <TITMMOVFISCAL> '
+    cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
+    cBody += '                                  <IDMOV>-1</IDMOV> '
+    cBody += '                                  <NSEQITMMOV>1</NSEQITMMOV> '
+    cBody += '                                  <VLRTOTTRIB>0,0000</VLRTOTTRIB> '
+    cBody += '                                  <VALORIBPTFEDERAL>0,0000</VALORIBPTFEDERAL> '
+    cBody += '                                  <VALORIBPTESTADUAL>0,0000</VALORIBPTESTADUAL> '
+    cBody += '                                  <VALORIBPTMUNICIPAL>0,0000</VALORIBPTMUNICIPAL> '
+    cBody += '                                  <AQUISICAOPAA>0</AQUISICAOPAA> '
+    cBody += '                              </TITMMOVFISCAL> '
     cBody += '                              <TCHAVEACESSOREF> '
     cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
     cBody += '                                  <IDMOV>-1</IDMOV> '
     cBody += '                                  <IDREF>0</IDREF> '
     cBody += '                                  <CODCOLIGADAREF>' + cCodEmp + '</CODCOLIGADAREF> '
-    cBody += '                                  <IDMOVREF></IDMOVREF> ' //Identificador de Referencia
-    cBody += '                                  <CHAVEACESSO>' + SF1->F1_CHVNFE + '</CHAVEACESSO> '
+    cBody += '                                  <IDMOVREF>' + AllTrim(SL1->L1_XIDMOV) + '</IDMOVREF> ' //Identificador de Referencia
+    cBody += '                                  <CHAVEACESSO>' + AllTrim(SL1->L1_KEYNFCE) + '</CHAVEACESSO> '
     cBody += '                                  <CODTMV>2.2.25</CODTMV> '
-    cBody += '                                  <NUMEROMOV>' + SF1->F1_DOC + '</NUMEROMOV> '
-    cBody += '                                  <SERIE>' + SF1->F1_SERIE + '</SERIE> '
+    cBody += '                                  <NUMEROMOV>' + AllTrim(SD1->D1_NFORI) + '</NUMEROMOV> '
+    cBody += '                                  <SERIE>' + AllTrim(SD1->D1_SERIORI) + '</SERIE> '
     cBody += '                                  <DATAEMISSAO>'+ ( FWTimeStamp(3, SF1->F1_EMISSAO , SF1->F1_HORA) ) +'</DATAEMISSAO> '
     cBody += '                                  <VALORLIQUIDO>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</VALORLIQUIDO> '
     cBody += '                              </TCHAVEACESSOREF> '
+    cBody += '                              <TMOVRELAC> '
+    cBody += '                                  <CODCOLORIGEM>' + cCodEmp + '</CODCOLORIGEM> '
+    cBody += '                                  <IDMOVORIGEM>-1</IDMOVORIGEM> '
+    cBody += '                                  <CODCOLDESTINO>' + cCodEmp + '</CODCOLDESTINO> '
+    cBody += '                                  <IDMOVDESTINO>' + AllTrim(SL1->L1_XIDMOV) + '</IDMOVDESTINO> ' //Identificador de Referencia
+    cBody += '                                  <TIPORELAC>V</TIPORELAC> '
+    cBody += '                                  <IDPROCESSO>-1</IDPROCESSO> '
+    cBody += '                                  <VALORRECEBIDO>0</VALORRECEBIDO> '
+    cBody += '                              </TMOVRELAC> '
+    cBody += '                              <TITMMOVRELAC> '
+    cBody += '                                  <CODCOLORIGEM>' + cCodEmp + '</CODCOLORIGEM> '
+    cBody += '                                  <IDMOVORIGEM>-1</IDMOVORIGEM> '
+    cBody += '                                  <NSEQITMMOVORIGEM>1</NSEQITMMOVORIGEM> '
+    cBody += '                                  <CODCOLDESTINO>' + cCodEmp + '</CODCOLDESTINO> '
+    cBody += '                                  <IDMOVDESTINO>' + AllTrim(SL1->L1_XIDMOV) + '</IDMOVDESTINO> ' //Identificador de Referencia
+    cBody += '                                  <NSEQITMMOVDESTINO>1</NSEQITMMOVDESTINO> '
+    cBody += '                                  <QUANTIDADE>0,00000</QUANTIDADE> ' //Quantidade ?
+    cBody += '                                  <VALORRECEBIDO>0</VALORRECEBIDO> ' //Valor Recebido ?
+    cBody += '                              </TITMMOVRELAC> '
     cBody += '                          </MovMovimento>]]> '
     cBody += '          </tot:XML> '
     cBody += '          <tot:Contexto>CODCOLIGADA=' + cCodEmp + ';CODSISTEMA=T</tot:Contexto> '
@@ -1891,14 +1908,14 @@ Static Function fEnvNFeDev()
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-        fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"SF1 - "+SF1->F1_DOC,"3","Integracao NF Devolucao")
+        fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"SF1 - "+SF1->F1_DOC,"3","NF Devolucao")
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"SF1 - "+SF1->F1_DOC,"3","Integracao NF Devolucao")
+            fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"SF1 - "+SF1->F1_DOC,"3","NF Devolucao")
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -1909,7 +1926,7 @@ Static Function fEnvNFeDev()
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),"SF1 - "+SF1->F1_DOC,"3","Integracao NF Devolucao")
+                fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),"SF1 - "+SF1->F1_DOC,"3","NF Devolucao")
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -1928,12 +1945,17 @@ Static Function fEnvNFeDev()
                         SF1->(MSUnlock())
                     EndIF
                 EndIF 
-                fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),"SF1 - "+SF1->F1_DOC,"3","Integracao NF Devolucao")
+                fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),"SF1 - "+SF1->F1_DOC,"3","NF Devolucao")
             Endif
 
         EndIf
     EndIF 
     
+    FWRestArea(aAreaSL1)
+    FWRestArea(aAreaSD1)
+    FWRestArea(aAreaSF1)
+    FWRestArea(aArea)  
+
 Return
 
 //-----------------------------------------------------------------------------
