@@ -1271,8 +1271,8 @@ Static Function fEnvNFeVend()
     cBody += '                                  <CODFILIAL>' + cCodFil + '</CODFILIAL> '
     cBody += '                                  <CODLOC>' + cLocEstoq + '</CODLOC> ' //Codigo do Local de Destino
     cBody += '                                  <CODCFO>' + SL1->L1_CLIENTE + '</CODCFO> ' //Codigo do Cliente / Fornecedor
-    cBody += '                                  <NUMEROMOV>' + SL1->L1_DOC + '</NUMEROMOV> '
-    cBody += '                                  <SERIE>' + SL1->L1_SERIE + '</SERIE> '
+    cBody += '                                  <NUMEROMOV>' + Alltrim(SL1->L1_DOC) + '</NUMEROMOV> '
+    cBody += '                                  <SERIE>' + Alltrim(SL1->L1_SERIE) + '</SERIE> '
     cBody += '                                  <CODTMV>2.2.25</CODTMV> '
     cBody += '                                  <TIPO>P</TIPO> '
     cBody += '                                  <STATUS>Q</STATUS> '
@@ -1385,8 +1385,8 @@ Static Function fEnvNFeVend()
     DBSelectArea("SL4")
     DBSelectArea("SAE")
     IF SL4->(MSSeek(SL1->L1_FILIAL + SL1->L1_NUM))
-        While SL4->(!Eof()) .AND. ( SL2->L2_FILIAL  == SL1->L1_FILIAL );
-                            .AND. ( SL2->L2_NUM     == SL1->L1_NUM )
+        While SL4->(!Eof()) .AND. ( SL4->L4_FILIAL  == SL1->L1_FILIAL );
+                            .AND. ( SL4->L4_NUM     == SL1->L1_NUM )
             
             SAE->(MSSeek(SL4->L4_FILIAL + SubStr(Alltrim(SL4->L4_ADMINIS),1,3)))
 
@@ -1394,15 +1394,15 @@ Static Function fEnvNFeVend()
             cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
             cBody += '                                  <IDSEQPAGTO>-1</IDSEQPAGTO> '
             cBody += '                                  <IDMOV>-1</IDMOV> '
-            cBody += '                                  <TIPOFORMAPAGTO></TIPOFORMAPAGTO> '
+            cBody += '                                  <TIPOFORMAPAGTO>'+ Alltrim(SAE->AE_XTPFORM) +'</TIPOFORMAPAGTO> '
             cBody += '                                  <TAXAADM>'+ Alltrim(AlltoChar(SAE->AE_TAXA, cPicVal)) +'</TAXAADM> '
-            cBody += '                                  <CODCXA>'+ Alltrim(SL1->L1_OPERADO) +'</CODCXA> '
-            cBody += '                                  <CODCOLCXA></CODCOLCXA> '
+            cBody += '                                  <CODCXA>'+ Alltrim(SAE->AE_XCODCX) +'</CODCXA> '
+            cBody += '                                  <CODCOLCXA>0</CODCOLCXA> '
             cBody += '                                  <IDLAN>-1</IDLAN> '
             cBody += '                                  <NOMEREDE></NOMEREDE> '
             cBody += '                                  <NSU>'+ AllTrim(SL4->L4_NSUTEF) +'</NSU> '
             cBody += '                                  <QTDEPARCELAS>0</QTDEPARCELAS> '
-            cBody += '                                  <IDFORMAPAGTO></IDFORMAPAGTO> '
+            cBody += '                                  <IDFORMAPAGTO>'+ Alltrim(SAE->AE_XIDFORM) +'</IDFORMAPAGTO> '
             cBody += '                                  <DATAVENCIMENTO>'+ ( FWTimeStamp(3, SL4->L4_DATA , SF2->F2_HORA) ) +'</DATAVENCIMENTO> '
             cBody += '                                  <TIPOPAGAMENTO></TIPOPAGAMENTO> '
             cBody += '                                  <VALOR>'+ Alltrim(AlltoChar(SL4->L4_VALOR, cPicVal)) +'</VALOR> '
@@ -1433,7 +1433,7 @@ Static Function fEnvNFeVend()
         cBody += '                                  <FLAGEFEITOSALDO>1</FLAGEFEITOSALDO> '
         cBody += '                                  <VALORUNITARIO>' + Alltrim(AlltoChar(SL2->L2_VLRITEM, cPicVal)) + '</VALORUNITARIO> '
         cBody += '                                  <VALORFINANCEIRO>' + Alltrim(AlltoChar(SL2->L2_VLRITEM, cPicVal)) + '</VALORFINANCEIRO> '
-        cBody += '                                  <CODCCUSTO>' + SL2->L2_CCUSTO + '</CODCCUSTO> '
+        cBody += '                                  <CODCCUSTO>' + Alltrim(SL2->L2_CCUSTO) + '</CODCCUSTO> '
         cBody += '                                  <ALIQORDENACAO>0,0000</ALIQORDENACAO> '
         cBody += '                                  <QUANTIDADEORIGINAL>' + Alltrim(AlltoChar(SL2->L2_QUANT, cPicVal)) + '</QUANTIDADEORIGINAL> '
         cBody += '                                  <IDNAT>42</IDNAT> '
