@@ -2702,7 +2702,7 @@ Realiza o cancelamento do Movimento no RM
 User Function fCanMovim(pIDMov,pNumMov)
     Local oWsdl as Object
     Local oXml as Object 
-    Local cPath     := "/wsFormulaVisual/MEX?wsdl"
+    Local cPath     := "/wsDataServer/MEX?wsdl"
     Local cBody     := ""
     Local cResult   := ""
     Local lRet      := .F.
@@ -2889,6 +2889,10 @@ User Function fCanMovim(pIDMov,pNumMov)
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
                 fnGrvLog('MovCancelMovProc',cBody,"",oXML:Error(),'Erro Cancelamento Documento: '+pNumMov,"2","ERRO")
             Else
+                
+                oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
+                oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
+
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/") 
                 fnGrvLog('MovCancelMovProc',cBody,cResult,"",'Cancelamento Documento: '+pNumMov,"5","CANCELAMENTO")
@@ -2943,7 +2947,7 @@ User Function fnConsultBX(pIDMov)
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta Baixa ID Mov: "+ pIDMov,"2","ERRO")
+            fnGrvLog('wsConsultaBaixa',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta Baixa ID Mov: "+ pIDMov,"2","ERRO")
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -2954,7 +2958,7 @@ User Function fnConsultBX(pIDMov)
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta Baixa ID Mov: "+ pIDMov,"2","ERRO")
+                fnGrvLog('wsConsultaBaixa',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta Baixa ID Mov: "+ pIDMov,"2","ERRO")
             else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -2966,7 +2970,7 @@ User Function fnConsultBX(pIDMov)
                 aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:NUMEROMOV'))
                 aAdd(aRet,aRetAux)
 
-                fnGrvLog(cEndPoint,cBody,cResult,"","Consulta Baixa ID Mov: "+ pIDMov,"1","CONSULTA")
+                fnGrvLog('wsConsultaBaixa',cBody,cResult,"","Consulta Baixa ID Mov: "+ pIDMov,"1","CONSULTA")
             Endif
 
         EndIf
