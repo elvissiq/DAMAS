@@ -14,8 +14,11 @@ User Function MT103EXC()
         Local aRet      := {}
         Local nY 
         
-        Private cCodEmp   := ""
-        Private cCodFil   := ""
+        Private cCodEmp := ""
+        Private cCodFil := ""
+        Private cUrl    := SuperGetMV("MV_XURLRM" ,.F.,"")
+        Private cUser   := SuperGetMV("MV_XRMUSER",.F.,"")
+        Private cPass   := SuperGetMV("MV_XRMPASS",.F.,"")
 
         DBSelectArea("XXD")
         XXD->(DBSetOrder(3))
@@ -25,11 +28,13 @@ User Function MT103EXC()
                 cCodFil := AllTrim(XXD->XXD_BRANCH)
                 
                 IF AllTrim(SF1->F1_XINT_RM) == "S" .And. !Empty(SF1->F1_XIDMOV)
-                        aRet := U_fnConsultBX(SF1->F1_XIDMOV)
+                        aRet := U_fnConsultBX(AllTrim(SF1->F1_XIDMOV))
                         IF Len(aRet) > 0
                                 
                                 For nY := 1 To Len(aRet)
-                                      lTeveBX := .T.  
+                                      IF aRet[nY][3] <> '0'
+                                        lTeveBX := .T.  
+                                      EndIF 
                                 Next 
 
                                 If lTeveBX
@@ -48,7 +53,7 @@ User Function MT103EXC()
         EndIF
 
         If lContinua
-                lRet := u_fCanMovim(pIDMov,pNumMov)
+                lRet := u_fCanMovim(aRet[1][1],aRet[1][4])
         EndIF 
 
         FWRestArea(aArea)
