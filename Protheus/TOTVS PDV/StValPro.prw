@@ -27,7 +27,7 @@ User Function StValPro()
 
 	U_DSOAPF01("wsTprdLoc",cCodProd,cLocPad)
 
-	If lErIntRM //Caso ocorra erro na integra��o com o RM, consulta o estoque local.
+	If lErIntRM //Caso ocorra erro na integracao com o RM, consulta o estoque local.
 		DBSelectArea("SB2")
 		SB2->(DBGoTop())
 		If SB2->(MSseek(xFilial("SB2")+cCodProd+cLocPad))

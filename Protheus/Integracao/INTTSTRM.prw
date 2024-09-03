@@ -9,14 +9,23 @@
 User Function: DSOAPF01 - Função para Integração Via SOAP com o TOTVS Corpore RM
 @OWNER PanCristal
 @VERSION PROTHEUS 12
-@SINCE 21/08/2024
+@SINCE 02/09/2024
 @Permite
 Programa Fonte
 /*/
 User Function INTTSTRM()
     Local aPerg := {}
     Local aRet  := {}
-    Local aEndPoint := {"wsCliForResumo", "wsProdutos", "wsTabPreco", "wsTabPrcUni", "wsPontoVenda", "wsPrdCodBarras", "wsVendedor"}
+    Local aEndPoint := {"wsCliForResumo",;
+                        "wsProdutos",;
+                        "wsTabPreco",;
+                        "wsTabPrcUni",;
+                        "wsPontoVenda",;
+                        "wsPrdCodBarras",;
+                        "wsPrdFilCCusto",;
+                        "wsFormaPagamento",;
+                        "wsVendedor",;
+                        "MovMovimentoTBCData"}
     Local cSelec := ""
 
     aAdd( aPerg ,{9,"Selecione o EndPoint",200     , 40 ,.T.})

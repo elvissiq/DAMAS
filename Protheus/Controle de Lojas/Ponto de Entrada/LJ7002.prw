@@ -34,12 +34,13 @@ Nenhum
 User Function LJ7002()
   Local aPEArea := FWGetArea()
   Local nOpcao  := ParamIxB[01]
+  Local nGrvBat := ParamIxB[03]
 
   If nOpcao <> 2
-     Return
+    Return
+  ElseIF nGrvBat == 2 
+    U_DSOAPF01("MovMovimentoTBCData")
   EndIf
-
-  U_DSOAPF01(,,"MovMovimentoTBCData")
   
   FWRestArea(aPEArea)
 Return
