@@ -51,7 +51,6 @@ User Function DSOAPF01(pEndpoint,pCodProd,pLocPad)
         u_fIntRM('MovMovCopiaReferenciaData',.F.)
 
         u_fIntRM('MovMovimentoTBCData',.F.)
-
     Else
         Processa({|| u_fIntRM(cEndPoint,.T.,pCodProd,pLocPad)}, "Integrando Endpoint " + cEndPoint + "...")
     EndIf
@@ -1142,6 +1141,7 @@ Static Function fwsFormaPagamento()
     Local nY
 
     Private lLj070Auto := .T.
+    Private aRotina := {}
 
     cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
     cBody += '  <soapenv:Header/> '
@@ -1672,8 +1672,8 @@ Static Function fEnvNFeVend()
     cBody += '                                  <MOVIMPRESSO>0</MOVIMPRESSO> '
     cBody += '                                  <DOCIMPRESSO>0</DOCIMPRESSO> '
     cBody += '                                  <FATIMPRESSA>0</FATIMPRESSA> '
-    cBody += '                                  <DATAEMISSAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA )  )+ '</DATAEMISSAO> '
-    cBody += '                                  <DATASAIDA>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA )  )+ '</DATASAIDA> '
+    cBody += '                                  <DATAEMISSAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time()) )  )+ '</DATAEMISSAO> '
+    cBody += '                                  <DATASAIDA>' + ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time()) )  )+ '</DATASAIDA> '
     cBody += '                                  <COMISSAOREPRES>0,0000</COMISSAOREPRES> '
     cBody += '                                  <VALORBRUTO>' + Alltrim(AlltoChar(SL1->L1_VALBRUT, cPicVal)) + '</VALORBRUTO> '
     cBody += '                                  <VALORLIQUIDO>' + Alltrim(AlltoChar(SL1->L1_VLRLIQ, cPicVal)) + '</VALORLIQUIDO> '
@@ -1691,7 +1691,7 @@ Static Function fEnvNFeVend()
     cBody += '                                  <CODTB4FLX/> '
     cBody += '                                  <IDMOVLCTFLUXUS>-1</IDMOVLCTFLUXUS> '
     cBody += '                                  <CODMOEVALORLIQUIDO>R$</CODMOEVALORLIQUIDO> '
-    cBody += '                                  <DATAMOVIMENTO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA )  )+ '</DATAMOVIMENTO> '
+    cBody += '                                  <DATAMOVIMENTO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time()) )  )+ '</DATAMOVIMENTO> '
     cBody += '                                  <NUMEROLCTGERADO>1</NUMEROLCTGERADO> '
     cBody += '                                  <GEROUFATURA>0</GEROUFATURA> '
     cBody += '                                  <NUMEROLCTABERTO>1</NUMEROLCTABERTO> '
@@ -1709,32 +1709,32 @@ Static Function fEnvNFeVend()
     cBody += '                                  <IDNAT>19</IDNAT> ' //Verificar esse ID NAT 
     cBody += '                                  <GEROUCONTATRABALHO>0</GEROUCONTATRABALHO> '
     cBody += '                                  <GERADOPORCONTATRABALHO>0</GERADOPORCONTATRABALHO> '
-    cBody += '                                  <HORULTIMAALTERACAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA )  )+ '</HORULTIMAALTERACAO> '
+    cBody += '                                  <HORULTIMAALTERACAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time()) )  )+ '</HORULTIMAALTERACAO> '
     cBody += '                                  <INDUSOOBJ>0.00</INDUSOOBJ> '
     cBody += '                                  <INTEGRADOBONUM>0</INTEGRADOBONUM> '
     cBody += '                                  <FLAGPROCESSADO>0</FLAGPROCESSADO> '
     cBody += '                                  <ABATIMENTOICMS>0,0000</ABATIMENTOICMS> '
-    cBody += '                                  <HORARIOEMISSAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA) )+ '</HORARIOEMISSAO> '
+    cBody += '                                  <HORARIOEMISSAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) )+ '</HORARIOEMISSAO> '
     cBody += '                                  <USUARIOCRIACAO>' + cUser + '</USUARIOCRIACAO> '
-    cBody += '                                  <DATACRIACAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA) )+ '</DATACRIACAO> '
+    cBody += '                                  <DATACRIACAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) )+ '</DATACRIACAO> '
     cBody += '                                  <STSEMAIL>0</STSEMAIL> '
     cBody += '                                  <VALORBRUTOINTERNO>' + Alltrim(AlltoChar(SL1->L1_VALBRUT, cPicVal)) + '</VALORBRUTOINTERNO> '
     cBody += '                                  <VINCULADOESTOQUEFL>0</VINCULADOESTOQUEFL> '
-    cBody += '                                  <HORASAIDA>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA) )+ '</HORASAIDA> '
+    cBody += '                                  <HORASAIDA>' + ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) )+ '</HORASAIDA> '
     cBody += '                                  <VRBASEINSSOUTRAEMPRESA>0,0000</VRBASEINSSOUTRAEMPRESA> '
     cBody += '                                  <CODTDO>65</CODTDO> '
     cBody += '                                  <VALORDESCCONDICIONAL>0,0000</VALORDESCCONDICIONAL> '
     cBody += '                                  <VALORDESPCONDICIONAL>0,0000</VALORDESPCONDICIONAL> '
-    cBody += '                                  <DATACONTABILIZACAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA) )+ '</DATACONTABILIZACAO> '
+    cBody += '                                  <DATACONTABILIZACAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) )+ '</DATACONTABILIZACAO> '
     cBody += '                                  <INTEGRADOAUTOMACAO>0</INTEGRADOAUTOMACAO> '
     cBody += '                                  <INTEGRAAPLICACAO>T</INTEGRAAPLICACAO> '
-    cBody += '                                  <DATALANCAMENTO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA) )+ '</DATALANCAMENTO> '
+    cBody += '                                  <DATALANCAMENTO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) )+ '</DATALANCAMENTO> '
     cBody += '                                  <RECIBONFESTATUS>0</RECIBONFESTATUS> '
     cBody += '                                  <VALORMERCADORIAS>' + Alltrim(AlltoChar(SL1->L1_VALMERC, cPicVal)) + '</VALORMERCADORIAS> '
     cBody += '                                  <USARATEIOVALORFIN>1</USARATEIOVALORFIN> '
     cBody += '                                  <CODCOLCFOAUX>0</CODCOLCFOAUX> '
     cBody += '                                  <VALORRATEIOLAN>' + Alltrim(AlltoChar(SL1->L1_VLRLIQ, cPicVal)) + '</VALORRATEIOLAN> '
-    cBody += '                                  <CHAVEACESSONFE>'+ Alltrim(AlltoChar(SL1->L1_KEYNFCE, cPicVal)) +'</CHAVEACESSONFE> '
+    cBody += '                                  <CHAVEACESSONFE>'+ Alltrim(SL1->L1_KEYNFCE) +'</CHAVEACESSONFE> '
     cBody += '                                  <RATEIOCCUSTODEPTO>' + Alltrim(AlltoChar(SL1->L1_VLRLIQ, cPicVal)) + '</RATEIOCCUSTODEPTO> '
     cBody += '                                  <VALORBRUTOORIG>' + Alltrim(AlltoChar(SL1->L1_VALBRUT, cPicVal)) + '</VALORBRUTOORIG> '
     cBody += '                                  <VALORLIQUIDOORIG>' + Alltrim(AlltoChar(SL1->L1_VLRLIQ, cPicVal)) + '</VALORLIQUIDOORIG> '
@@ -1756,7 +1756,7 @@ Static Function fEnvNFeVend()
     cBody += '                                  <IDMOV>-1</IDMOV> '
     cBody += '                                  <CONTRIBUINTECREDENCIADO>0</CONTRIBUINTECREDENCIADO> '
     cBody += '                                  <OPERACAOCONSUMIDORFINAL>1</OPERACAOCONSUMIDORFINAL> '
-    cBody += '                                  <DATAINICIOCREDITO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA) ) + '</DATAINICIOCREDITO> '
+    cBody += '                                  <DATAINICIOCREDITO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) ) + '</DATAINICIOCREDITO> '
     cBody += '                                  <OPERACAOPRESENCIAL>0</OPERACAOPRESENCIAL> '
     cBody += '                                  <NROSAT>'+Alltrim(SL1->L1_SERSAT)+'</NROSAT> '
     cBody += '                              </TMOVFISCAL> '
@@ -1799,7 +1799,7 @@ Static Function fEnvNFeVend()
         cBody += '                                  <NSU/> '
         cBody += '                                  <QTDEPARCELAS>0</QTDEPARCELAS> '
         cBody += '                                  <IDFORMAPAGTO>'+ Alltrim(SAE->AE_XIDFORM) +'</IDFORMAPAGTO> '
-        cBody += '                                  <DATAVENCIMENTO>'+ ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA) ) +'</DATAVENCIMENTO> '
+        cBody += '                                  <DATAVENCIMENTO>'+ ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) ) +'</DATAVENCIMENTO> '
         cBody += '                                  <TIPOPAGAMENTO>1</TIPOPAGAMENTO> '
         cBody += '                                  <VALOR>'+ Alltrim(AlltoChar(SL1->L1_CREDITO, cPicVal)) +'</VALOR> '
         cBody += '                                  <DEBITOCREDITO>C</DEBITOCREDITO> '
@@ -1839,7 +1839,7 @@ Static Function fEnvNFeVend()
             cBody += '                                  <NSU>'+ AllTrim(SL4->L4_NSUTEF) +'</NSU> '
             cBody += '                                  <QTDEPARCELAS>0</QTDEPARCELAS> '
             cBody += '                                  <IDFORMAPAGTO>'+ Alltrim(SAE->AE_XIDFORM) +'</IDFORMAPAGTO> '
-            cBody += '                                  <DATAVENCIMENTO>'+ ( FWTimeStamp(3, SL4->L4_DATA , SL1->L1_HORA) ) +'</DATAVENCIMENTO> '
+            cBody += '                                  <DATAVENCIMENTO>'+ ( FWTimeStamp(3, SL4->L4_DATA , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) ) +'</DATAVENCIMENTO> '
             cBody += '                                  <TIPOPAGAMENTO>1</TIPOPAGAMENTO> '
             cBody += '                                  <VALOR>'+ Alltrim(AlltoChar(SL4->L4_VALOR, cPicVal)) +'</VALOR> '
             cBody += '                                  <DEBITOCREDITO>C</DEBITOCREDITO> '
@@ -1863,7 +1863,7 @@ Static Function fEnvNFeVend()
         cBody += '                                  <PRECOTABELA>0,0000</PRECOTABELA> '
         cBody += '                                  <PERCENTUALDESC>0,0000</PERCENTUALDESC> '
         cBody += '                                  <VALORDESC>0,0000</VALORDESC> '
-        cBody += '                                  <DATAEMISSAO>'+ ( FWTimeStamp(3, SL1->L1_EMISNF , SL1->L1_HORA) ) +'</DATAEMISSAO> '
+        cBody += '                                  <DATAEMISSAO>'+ ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) ) +'</DATAEMISSAO> '
         cBody += '                                  <CODUND>' + Alltrim(SL2->L2_UM) + '</CODUND> '
         cBody += '                                  <QUANTIDADEARECEBER>' + Alltrim(AlltoChar(SL2->L2_QUANT, cPicVal)) + '</QUANTIDADEARECEBER> '
         cBody += '                                  <FLAGEFEITOSALDO>1</FLAGEFEITOSALDO> '
