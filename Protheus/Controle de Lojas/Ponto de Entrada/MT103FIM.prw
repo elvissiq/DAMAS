@@ -16,10 +16,14 @@ depois de fechar a operação realizada neste.
 
 User Function MT103FIM()
     Local aArea    := FWGetArea()
-    
-    DBSelectArea('SF1')
-    IF SF1->(MSSeek(xFilial("SF1")+cNFiscal+cSerie+cA100For+cLoja))
-        U_DSOAPF01("MovMovCopiaReferenciaData")
+
+    If IsInCallStack("LOJA720")
+
+        DBSelectArea('SF1')
+        IF SF1->(MSSeek(xFilial("SF1")+cNFiscal+cSerie+cA100For+cLoja))
+            U_DSOAPF01("MovMovCopiaReferenciaData")
+        EndIF 
+
     EndIF 
 
     FWRestArea(aArea)

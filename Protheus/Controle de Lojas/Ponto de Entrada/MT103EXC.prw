@@ -8,12 +8,12 @@
 
 User Function MT103EXC()
         Local aArea     := FWGetArea()
-        Local lRet      := .F.
         Local lTeveBX   := .F.
         Local lContinua := .F.
         Local aRet      := {}
         Local nY 
         
+        Private lRet    := .F.
         Private cCodEmp := ""
         Private cCodFil := ""
         Private cUrl    := SuperGetMV("MV_XURLRM" ,.F.,"")
@@ -40,7 +40,7 @@ User Function MT103EXC()
                                 If lTeveBX
                                         For nY := 1 To Len(aRet)
                                                 IF !Empty(aRet[nY][3])
-                                                        lContinua := u_fCanFinan(aRet[nY][2],aRet[nY][3])
+                                                        lContinua := FWMsgRun(,{|| u_fCanFinan(aRet[nY][2],aRet[nY][3]) }, "TOTVS Corpore RM", "Realizando cancelamento da Baixa...")
                                                 EndIF 
                                         Next
                                 Else
@@ -53,7 +53,7 @@ User Function MT103EXC()
         EndIF
 
         If lContinua
-                lRet := u_fCanMovim(aRet[1][1],aRet[1][4])
+                FWMsgRun(,{|| u_fCanMovim(aRet[1][1],aRet[1][4]) }, "TOTVS Corpore RM", "Realizando cancelamento do Movimento...")
         EndIF 
 
         FWRestArea(aArea)
