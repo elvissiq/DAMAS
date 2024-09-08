@@ -9,7 +9,7 @@
 User Function: DSOAPF01 - Função para Integração via Webservice SOAP com o TOTVS Corpore RM 
 @OWNER PanCristal
 @VERSION PROTHEUS 12
-@SINCE 04/09/2024
+@SINCE 06/09/2024
 @Permite
 Programa Fonte
 /*/
@@ -103,6 +103,16 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
         Case (IsInCallStack("MATA103"))
             cEndPoint := "MovMovCopiaReferenciaData"
             lMsg := .T.
+        Case (IsInCallStack("MATA410"))
+            DBSelectArea("SL1")
+            SL1->(DBSetOrder(2))
+            If SL1->(MsSeek(xFilial("SL1") + SC5->C5_SERIE + SC5->C5_NOTA ))
+                cEndPoint := "MovMovimentoTBCData"
+                lMsg := .T.
+            Else
+                FWAlertHelp("Existem itens ainda não faturados no pedido de venda " + AllTrim(SC5->C5_NUM) + ".",;
+                            "Para envio ao TOTVS Corpore RM é faz necesário que todos os itens do Pedido de Venda estejam liberados e faturados.")
+            EndIF 
     End Case
 
     DBSelectArea("XXD")
