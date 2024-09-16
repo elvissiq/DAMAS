@@ -56,7 +56,7 @@ User Function LJ140CAN()
                 u_fCanMovim(aRet[1][1],aRet[1][4])
                 If lRet
                         RecLock("SL1",.F.)
-                                SL1->L1_XIDMOV := ""
+                                SL1->L1_XINT_RM := "C"
                         SL1->(MsUnlock())
                 EndIF 
         EndIF 

@@ -3,13 +3,14 @@
 #INCLUDE "APWEBSRV.CH"
 #INCLUDE "totvswebsrv.ch"
 #Include 'FWMVCDef.ch'
+#INCLUDE "FWEVENTVIEWCONSTS.CH"
 
 //------------------------------------------------------------------------------------------
 /*/{PROTHEUS.DOC} DSOAPF01
 User Function: DSOAPF01 - Função para Integração via Webservice SOAP com o TOTVS Corpore RM 
 @OWNER PanCristal
 @VERSION PROTHEUS 12
-@SINCE 06/09/2024
+@SINCE 16/09/2024
 @Permite
 Programa Fonte
 /*/
@@ -340,14 +341,14 @@ Static Function fwsCliForR()
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-        fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Clientes","2","Integracao Cliente")
+        u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Clientes","2","Integracao Cliente")
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Clientes","2","Integracao Cliente")
+            u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Clientes","2","Integracao Cliente")
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -358,7 +359,7 @@ Static Function fwsCliForR()
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Clientes","2","Integracao Cliente")
+                u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Clientes","2","Integracao Cliente")
             else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -469,9 +470,9 @@ Static Function fwsCliForR()
                             AutoGrLog("Valor anterior: "             + ' [' + AllToChar(aErro[09]) + ']')
                             
                             cErro := aErro[06]
-                            fnGrvLog(cEndPoint,cBody,'Erro',cErro,"Erro Cliente: " + aRegXML[2,3] + " - " +aRegXML[4,3],cValToChar(nOpc),"Integracao Cliente")
+                            u_fnGrvLog(cEndPoint,cBody,'Erro',cErro,"Erro Cliente: " + aRegXML[2,3] + " - " +aRegXML[4,3],cValToChar(nOpc),"Integracao Cliente")
                         Else
-                            fnGrvLog(cEndPoint,cBody,'Sucesso',,"Cliente: " + aRegXML[2,3] + " - " +aRegXML[4,3],cValToChar(nOpc),"Integracao Cliente")
+                            u_fnGrvLog(cEndPoint,cBody,'Sucesso',,"Cliente: " + aRegXML[2,3] + " - " +aRegXML[4,3],cValToChar(nOpc),"Integracao Cliente")
                         EndIf
 
                         oModel:DeActivate()
@@ -532,14 +533,14 @@ Static Function fwsProdutos()
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-        fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Produtos","2","Integracao Produtos")
+        u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Produtos","2","Integracao Produtos")
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Produtos","2","Integracao Produtos")
+            u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Produtos","2","Integracao Produtos")
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -550,7 +551,7 @@ Static Function fwsProdutos()
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Produtos","2","Integracao Produtos")
+                u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Produtos","2","Integracao Produtos")
             else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -623,9 +624,9 @@ Static Function fwsProdutos()
                             AutoGrLog("Valor anterior: "             + ' [' + AllToChar(aErro[09]) + ']')
                             
                             cErro := aErro[06]
-                            fnGrvLog(cEndPoint,cBody,cResult,cErro,"Erro Produto: " + aRegXML[04][03] + " - " +aRegXML[09][03],cValToChar(nOpc),"Integracao Produto")
+                            u_fnGrvLog(cEndPoint,cBody,cResult,cErro,"Erro Produto: " + aRegXML[04][03] + " - " +aRegXML[09][03],cValToChar(nOpc),"Integracao Produto")
                         Else
-                            fnGrvLog(cEndPoint,cBody,cResult,,"Produto: " + aRegXML[04][03] + " - " +aRegXML[09][03],cValToChar(nOpc),"Integracao Produto")
+                            u_fnGrvLog(cEndPoint,cBody,cResult,,"Produto: " + aRegXML[04][03] + " - " +aRegXML[09][03],cValToChar(nOpc),"Integracao Produto")
                         EndIf
 
                         oModel:DeActivate()
@@ -694,14 +695,14 @@ Static Function fwsTabPreco()
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-        fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao da Tabela de Preco","2","Integracao Tabela de Preco")
+        u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao da Tabela de Preco","2","Integracao Tabela de Preco")
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao da Tabela de Preco","2","Integracao Tabela de Preco")
+            u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao da Tabela de Preco","2","Integracao Tabela de Preco")
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -712,7 +713,7 @@ Static Function fwsTabPreco()
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao da Tabela de Preco","2","Integracao Tabela de Preco")
+                u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao da Tabela de Preco","2","Integracao Tabela de Preco")
             else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -810,9 +811,9 @@ Static Function fwsTabPreco()
                                 cErro += aErro[nAux] + CRLF
                             Next
                             
-                            fnGrvLog(cEndPoint,cBody,'',cErro,"Erro Tabela de Preco: " + StrZero(Val(aRegXML[02][03]), FWTamSX3("DA0_CODTAB")[1]) + " - " +aRegXML[07][03],cValToChar(nOpc),"Integracao Tabela de Preco")
+                            u_fnGrvLog(cEndPoint,cBody,'',cErro,"Erro Tabela de Preco: " + StrZero(Val(aRegXML[02][03]), FWTamSX3("DA0_CODTAB")[1]) + " - " +aRegXML[07][03],cValToChar(nOpc),"Integracao Tabela de Preco")
                         Else
-                            fnGrvLog(cEndPoint,cBody,'',,"Tabela de Preco: " + StrZero(Val(aRegXML[02][03]), FWTamSX3("DA0_CODTAB")[1]) + " - " +aRegXML[07][03],cValToChar(nOpc),"Integracao Tabela de Preco")
+                            u_fnGrvLog(cEndPoint,cBody,'',,"Tabela de Preco: " + StrZero(Val(aRegXML[02][03]), FWTamSX3("DA0_CODTAB")[1]) + " - " +aRegXML[07][03],cValToChar(nOpc),"Integracao Tabela de Preco")
                         EndIf
 
                     EndIF 
@@ -867,14 +868,14 @@ Static Function fwsTprdLoc(pCodProd,pLocPad)
     oWsdl:lVerbose         := .T.
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
-        fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Armazem: "+cLocEstoq+", Produto: "+cCodProd,"2","ERRO")
+        u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Armazem: "+cLocEstoq+", Produto: "+cCodProd,"2","ERRO")
         lErIntRM := .T.
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
-            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Armazem: "+cLocEstoq+", Produto: "+cCodProd,"2","ERRO")
+            u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Armazem: "+cLocEstoq+", Produto: "+cCodProd,"2","ERRO")
             lErIntRM := .T.
             Return
         Else
@@ -885,7 +886,7 @@ Static Function fwsTprdLoc(pCodProd,pLocPad)
             oXml := TXmlManager():New()
 
             If !oXML:Parse( cResult )
-                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Armazem: "+cLocEstoq+", Produto: "+cCodProd,"2","ERRO")
+                u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Armazem: "+cLocEstoq+", Produto: "+cCodProd,"2","ERRO")
             else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -896,11 +897,22 @@ Static Function fwsTprdLoc(pCodProd,pLocPad)
                         If SaldoSB2() != nSaldo
                             RecLock("SB2",.F.)
                                 SB2->B2_QATU := nSaldo
+                                SB2->B2_DMOV := DToS(dDataBase)
+                                SB2->B2_HMOV := Time()
                             SB2->(MSUnlock())
                         EndIF 
+                    Else
+                        RecLock("SB2",.T.)
+                            SB2->B2_FILIAL := xFilial("SB2")
+                            SB2->B2_COD    := cCodProd
+                            SB2->B2_LOCAL  := cLocEstoq
+                            SB2->B2_QATU   := nSaldo
+                            SB2->B2_DMOV   := DToS(dDataBase)
+                            SB2->B2_HMOV   := Time()
+                        SB2->(MSUnlock())
                     EndIF
                 EndIF
-                fnGrvLog(cEndPoint,cBody,cResult,"","Armazem: "+cLocEstoq+", Produto: "+cCodProd,"1","CONSULTA")
+                u_fnGrvLog(cEndPoint,cBody,cResult,"","Armazem: "+cLocEstoq+", Produto: "+cCodProd,"1","CONSULTA")
             Endif
 
         EndIf
@@ -946,14 +958,14 @@ Static Function fwsPontoVenda()
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-        fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Ponto de Venda","2","Integracao Ponto de Venda")
+        u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Ponto de Venda","2","Integracao Ponto de Venda")
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Ponto de Venda","2","Integracao Ponto de Venda")
+            u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Ponto de Venda","2","Integracao Ponto de Venda")
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -964,7 +976,7 @@ Static Function fwsPontoVenda()
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Ponto de Venda","2","Integracao Ponto de Venda")
+                u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Ponto de Venda","2","Integracao Ponto de Venda")
             else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -999,7 +1011,7 @@ Static Function fwsPontoVenda()
                                 FwPutSX5(cFilAnt, "01", aRegXML[06][03], '000000001', /*cTextoEng*/, /*cTextoEsp*/, /*cTextoAlt*/)
                             SLG->(MSUnlock())
 
-                            fnGrvLog(cEndPoint,cBody,cResult,"","Estacao: "+StrZero(aRegXML[02][03], FWTamSX3("LG_CODIGO")[1]),"3","Integracao Ponto de Venda")
+                            u_fnGrvLog(cEndPoint,cBody,cResult,"","Estacao: "+StrZero(aRegXML[02][03], FWTamSX3("LG_CODIGO")[1]),"3","Integracao Ponto de Venda")
                         EndIF 
                         
                     EndIF 
@@ -1055,14 +1067,14 @@ Static Function fwsPrdCodBarras()
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-        fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Codigo de Barras","2","Integracao Codigo de Barras")
+        u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Codigo de Barras","2","Integracao Codigo de Barras")
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Codigo de Barras","2","Integracao Codigo de Barras")
+            u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Codigo de Barras","2","Integracao Codigo de Barras")
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -1073,7 +1085,7 @@ Static Function fwsPrdCodBarras()
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Codigo de Barras","2","Integracao Codigo de Barras")
+                u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Codigo de Barras","2","Integracao Codigo de Barras")
             else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -1103,13 +1115,13 @@ Static Function fwsPrdCodBarras()
                                 SLK->LK_QUANT   := 1
                             SLK->(MSUnlock())
 
-                            fnGrvLog(cEndPoint,cBody,cResult,"","Codigo de Barras: "+aRegXML[05][03]+" - "+aRegXML[03][03],"3","Integracao Codigo de Barras")
+                            u_fnGrvLog(cEndPoint,cBody,cResult,"","Codigo de Barras: "+aRegXML[05][03]+" - "+aRegXML[03][03],"3","Integracao Codigo de Barras")
                         Else
                             RecLock("SLK",.F.)
                                 SLK->LK_CODBAR  := aRegXML[03][03]
                             SLK->(MSUnlock())
 
-                            fnGrvLog(cEndPoint,cBody,cResult,"","Codigo de Barras: "+aRegXML[05][03]+" - "+aRegXML[03][03],"4","Integracao Codigo de Barras")
+                            u_fnGrvLog(cEndPoint,cBody,cResult,"","Codigo de Barras: "+aRegXML[05][03]+" - "+aRegXML[03][03],"4","Integracao Codigo de Barras")
                         EndIF 
                         
                     EndIF  
@@ -1175,14 +1187,14 @@ Static Function fwsFormaPagamento()
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-        fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de wsFormaPagamento","2","ERRO")
+        u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de wsFormaPagamento","2","ERRO")
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de wsFormaPagamento","2","ERRO")
+            u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de wsFormaPagamento","2","ERRO")
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -1193,7 +1205,7 @@ Static Function fwsFormaPagamento()
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de wsFormaPagamento","2","ERRO")
+                u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de wsFormaPagamento","2","ERRO")
             else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -1250,23 +1262,37 @@ Static Function fwsFormaPagamento()
                     aAutoItens := {}
 
                     IF nOpc == 3
-                    aAdd(aAutoCab, {"AE_COD", aRegXML[03][03], Nil})                 // Codigo
-                    EndIF
-                    aAdd(aAutoCab, {"AE_DESC"   , Alltrim(aRegXML[04][03]), Nil  })  // Descricao da Adm Financeira
-                    aAdd(aAutoCab, {"AE_DIAS"   , nViraEm, Nil                   })  // Dia de a virar o cartao
-                    aAdd(aAutoCab, {"AE_TAXA"   , Val(aRegXML[08][03]), Nil      })  // Taxa Cobranca
-                    aAdd(aAutoCab, {"AE_TIPO"   , cTipoAdm, Nil                  })  // Tipo da Administradora
-                    aAdd(aAutoCab, {"AE_FINPRO" , "N", Nil                       })  // Financiamento próprio
-                    aAdd(aAutoCab, {"AE_PARCDE" , 1, Nil                         })  // Qtd. minima parcelas
-                    aAdd(aAutoCab, {"AE_PARCATE", nParcAte, Nil                  })  // Qtd. máxima parcelas
-                    aAdd(aAutoCab, {"AE_XTPFORM", Alltrim(aRegXML[06][03]), Nil  })  // Tipo da Forma de Pagamento
-                    aAdd(aAutoCab, {"AE_XCODCX" , Alltrim(aRegXML[14][03]), Nil  })  // Codigo Caixa RM 
-                    aAdd(aAutoCab, {"AE_XIDFORM", Alltrim(aRegXML[02][03]), Nil  })  // ID da Forma de Pag. RM
+                        aAdd(aAutoCab, {"AE_COD", aRegXML[03][03], Nil})                 // Codigo
+                        aAdd(aAutoCab, {"AE_DESC"   , Alltrim(aRegXML[04][03]), Nil  })  // Descricao da Adm Financeira
+                        aAdd(aAutoCab, {"AE_DIAS"   , nViraEm, Nil                   })  // Dia de a virar o cartao
+                        aAdd(aAutoCab, {"AE_TAXA"   , Val(aRegXML[08][03]), Nil      })  // Taxa Cobranca
+                        aAdd(aAutoCab, {"AE_TIPO"   , cTipoAdm, Nil                  })  // Tipo da Administradora
+                        aAdd(aAutoCab, {"AE_FINPRO" , "N", Nil                       })  // Financiamento próprio
+                        aAdd(aAutoCab, {"AE_PARCDE" , 1, Nil                         })  // Qtd. minima parcelas
+                        aAdd(aAutoCab, {"AE_PARCATE", nParcAte, Nil                  })  // Qtd. máxima parcelas
+                        aAdd(aAutoCab, {"AE_XTPFORM", Alltrim(aRegXML[06][03]), Nil  })  // Tipo da Forma de Pagamento
+                        aAdd(aAutoCab, {"AE_XCODCX" , Alltrim(aRegXML[14][03]), Nil  })  // Codigo Caixa RM 
+                        aAdd(aAutoCab, {"AE_XIDFORM", Alltrim(aRegXML[02][03]), Nil  })  // ID da Forma de Pag. RM
 
-                    IF FWMVCRotAuto(oModel, "SAE", nOpc , {{"SAEMASTER", aAutoCab}, {"MENDETAIL", aAutoItens}},,.T.)
+                        IF FWMVCRotAuto(oModel, "SAE", nOpc , {{"SAEMASTER", aAutoCab}, {"MENDETAIL", aAutoItens}},,.T.)
+                            lOk := .T.
+                        Else
+                            lOk := .F.
+                        EndIF
+                    ElseIF nOpc == 4
+                        RecLock("SAE",.F.)
+                            SAE->AE_DESC    := Alltrim(aRegXML[04][03])  // Descricao da Adm Financeira
+                            SAE->AE_DIAS    := nViraEm                   // Dia de a virar o cartao
+                            SAE->AE_TAXA    := Val(aRegXML[08][03])      // Taxa Cobranca
+                            SAE->AE_TIPO    := cTipoAdm                  // Tipo da Administradora
+                            SAE->AE_FINPRO  := "N"                       // Financiamento próprio
+                            SAE->AE_PARCDE  := 1                         // Qtd. minima parcelas
+                            SAE->AE_PARCATE := nParcAte                  // Qtd. máxima parcelas
+                            SAE->AE_XTPFORM := Alltrim(aRegXML[06][03])  // Tipo da Forma de Pagamento
+                            SAE->AE_XCODCX  := Alltrim(aRegXML[14][03])  // Codigo Caixa RM 
+                            SAE->AE_XIDFORM := Alltrim(aRegXML[02][03])  // ID da Forma de Pag. RM
+                        SAE->(MsUnlock())
                         lOk := .T.
-                    Else
-                        lOk := .F.
                     EndIF
 
                     If ! lOk
@@ -1282,9 +1308,9 @@ Static Function fwsFormaPagamento()
                         AutoGrLog("Valor anterior: "             + ' [' + AllToChar(aErro[09]) + ']')
                         
                         cErro := aErro[06]
-                        fnGrvLog(cEndPoint,cBody,cResult,cErro,"Erro Adm Financeira: " + aRegXML[03][03] + " - " +aRegXML[09][03],cValToChar(nOpc),IIF(nOpc == 3, "INCLUSAO", "ALTERACAO"))
+                        u_fnGrvLog(cEndPoint,cBody,cResult,cErro,"Erro Adm Financeira: " + aRegXML[03][03] + " - " +aRegXML[09][03],cValToChar(nOpc),IIF(nOpc == 3, "INCLUSAO", "ALTERACAO"))
                     Else
-                        fnGrvLog(cEndPoint,cBody,cResult,,"Adm Financeira: " + aRegXML[03][03] + " - " +aRegXML[04][03],cValToChar(nOpc),IIF(nOpc == 3, "INCLUSAO", "ALTERACAO"))
+                        u_fnGrvLog(cEndPoint,cBody,cResult,,"Adm Financeira: " + aRegXML[03][03] + " - " +aRegXML[04][03],cValToChar(nOpc),IIF(nOpc == 3, "INCLUSAO", "ALTERACAO"))
                     EndIf
                     oModel:DeActivate()  
                 Next 
@@ -1340,14 +1366,14 @@ Static Function fwsPrdFilCCusto()
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-        fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de wsPrdFilCCusto","2","ERRO")
+        u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de wsPrdFilCCusto","2","ERRO")
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de wsPrdFilCCusto","2","ERRO")
+            u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de wsPrdFilCCusto","2","ERRO")
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -1358,7 +1384,7 @@ Static Function fwsPrdFilCCusto()
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de wsPrdFilCCusto","2","ERRO")
+                u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de wsPrdFilCCusto","2","ERRO")
             else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -1389,14 +1415,14 @@ Static Function fwsPrdFilCCusto()
                                 SZ2->Z2_DESCCC  := aRegXML[07][03]
                             SZ2->(MSUnlock())
 
-                            fnGrvLog(cEndPoint,cBody,cResult,"","wsPrdFilCCusto: "+aRegXML[05][03]+" - "+aRegXML[03][03],"3","INCLUSAO")
+                            u_fnGrvLog(cEndPoint,cBody,cResult,"","wsPrdFilCCusto: "+aRegXML[05][03]+" - "+aRegXML[03][03],"3","INCLUSAO")
                         Else
                             RecLock("SZ2",.F.)
                                 SZ2->Z2_CCUSTO  := aRegXML[03][03]
                                 SZ2->Z2_DESCCC  := aRegXML[07][03]
                             SZ2->(MSUnlock())
 
-                            fnGrvLog(cEndPoint,cBody,cResult,"","wsPrdFilCCusto: "+aRegXML[05][03]+" - "+aRegXML[03][03],"4","ALTERACAO")
+                            u_fnGrvLog(cEndPoint,cBody,cResult,"","wsPrdFilCCusto: "+aRegXML[05][03]+" - "+aRegXML[03][03],"4","ALTERACAO")
                         EndIF 
                         
                     EndIF  
@@ -1465,14 +1491,14 @@ Static Function fwsVendedor()
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-        fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Codigo de Barras","2","Integracao Codigo de Barras")
+        u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Codigo de Barras","2","Integracao Codigo de Barras")
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Vendedor/Operador","2","Integracao Vendedor/Operador")
+            u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Vendedor/Operador","2","Integracao Vendedor/Operador")
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -1483,7 +1509,7 @@ Static Function fwsVendedor()
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Vendedor/Operador","2","Integracao Vendedor/Operador")
+                u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Erro na Importacao de Vendedor/Operador","2","Integracao Vendedor/Operador")
             else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -1523,9 +1549,9 @@ Static Function fwsVendedor()
                                 For nAux := 1 To Len(aErro)
                                     cErro += aErro[nAux] + CRLF
                                 Next
-                                fnGrvLog(cEndPoint,cBody,"",cErro,"Vendedor: "+cCodVend,"3","Integracao Vendedor")
+                                u_fnGrvLog(cEndPoint,cBody,"",cErro,"Vendedor: "+cCodVend,"3","Integracao Vendedor")
                             Else
-                                fnGrvLog(cEndPoint,cBody,cResult,"","Vendedor: "+cCodVend,"3","Integracao Vendedor")
+                                u_fnGrvLog(cEndPoint,cBody,cResult,"","Vendedor: "+cCodVend,"3","Integracao Vendedor")
                             EndIF 
 
                             
@@ -1541,9 +1567,9 @@ Static Function fwsVendedor()
                                 For nAux := 1 To Len(aErro)
                                     cErro += aErro[nAux] + CRLF
                                 Next
-                                fnGrvLog(cEndPoint,cBody,"",cErro,"Vendedor: "+cCodVend,"4","Integracao Vendedor")
+                                u_fnGrvLog(cEndPoint,cBody,"",cErro,"Vendedor: "+cCodVend,"4","Integracao Vendedor")
                             Else
-                                fnGrvLog(cEndPoint,cBody,cResult,"","Vendedor: "+cCodVend,"4","Integracao Vendedor")
+                                u_fnGrvLog(cEndPoint,cBody,cResult,"","Vendedor: "+cCodVend,"4","Integracao Vendedor")
                             EndIF
                         EndIF 
                         
@@ -1605,14 +1631,14 @@ Static Function fwsVendedor()
                             AutoGrLog("Valor anterior: "             + ' [' + AllToChar(aErro[09]) + ']')
                             
                             cErro := aErro[06]
-                            fnGrvLog(cEndPoint,cBody,cResult,cErro,"Operador: " + cCodOper ,cValToChar(nOpc),"Integracao Produto")
+                            u_fnGrvLog(cEndPoint,cBody,cResult,cErro,"Operador: " + cCodOper ,cValToChar(nOpc),"Integracao Produto")
                         Else
                             IF nOpc == 3
                                 FwPutSX5(,"23", cCodOper , Pad(aRegXML[20][03],FWTamSX3("A6_NOME")[1]), /*cTextoEng*/, /*cTextoEsp*/, /*cTextoAlt*/)
                                 
                             EndIF 
 
-                            fnGrvLog(cEndPoint,cBody,cResult,,"Erro Operador: " + cCodOper ,cValToChar(nOpc),"Integracao Produto")
+                            u_fnGrvLog(cEndPoint,cBody,cResult,,"Erro Operador: " + cCodOper ,cValToChar(nOpc),"Integracao Produto")
                         EndIf
 
                         oModel:DeActivate()
@@ -1654,6 +1680,7 @@ Static Function fEnvNFeVend()
     Local cLocEstoq := SuperGetMV("MV_LOCPAD")
     Local cIDMovRet := ""
     Local cCodAdm   := ""
+    Local cTitulo   := "Erro de Integração de Venda, Orçamento: " + SL1->L1_NUM + ", NFC-e: " + AllTrim(SL1->L1_DOC) + ", Série: " + AllTrim(SL1->L1_SERIE) + " com o TOTVS Corpore RM"
 
     DBSelectArea("SL2")
     IF !SL2->(MsSeek(SL1->L1_FILIAL + SL1->L1_NUM ))
@@ -2022,14 +2049,14 @@ Static Function fEnvNFeVend()
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("SaveRecord")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-        fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"SL1 - "+SL1->L1_NUM,"2","ERRO")
+        u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"SL1 - "+SL1->L1_NUM,"2","ERRO")
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"SL1 - "+SL1->L1_NUM,"2","ERRO")
+            u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"SL1 - "+SL1->L1_NUM,"2","ERRO")
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -2040,7 +2067,7 @@ Static Function fEnvNFeVend()
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                fnGrvLog(cEndPoint,cBody,"",oXML:Error(),"SL1 - "+SL1->L1_NUM,"2","ERRO")
+                u_fnGrvLog(cEndPoint,cBody,"",oXML:Error(),"SL1 - "+SL1->L1_NUM,"2","ERRO")
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -2057,10 +2084,20 @@ Static Function fEnvNFeVend()
                         SL1->L1_XIDMOV  := cIDMovRet
                         SL1->L1_XINT_RM := "S"
                     SL1->(MSUnlock())
-                    fnGrvLog(cEndPoint,cBody,cResult,"","SL1 - "+SL1->L1_NUM,"6","ENVIO")
+                    u_fnGrvLog(cEndPoint,cBody,cResult,"","SL1 - "+SL1->L1_NUM,"6","ENVIO")
                 Else
+
+                    cIDMovRet := wsNumeroMOV() //Realiza consulta do Movimento atraves do Numero,Serie e Cliente do NFC-e
+                    
+                    If !Empty(cIDMovRet)
+                        RecLock("SL1",.F.)
+                            SL1->L1_XIDMOV  := cIDMovRet
+                            SL1->L1_XINT_RM := "S"
+                        SL1->(MSUnlock())
+                        fEnvMail("RM1",cTitulo,cResult)
+                    EndIF 
                     ApMsgAlert(cResult,"Erro Integracao TOTVS Corpore RM")
-                    fnGrvLog(cEndPoint,cBody,"",cResult,"SL1 - "+SL1->L1_NUM,"2","ERRO")
+                    u_fnGrvLog(cEndPoint,cBody,"",cResult,"SL1 - "+SL1->L1_NUM,"2","ERRO")
                 EndIF 
             Endif
 
@@ -2094,6 +2131,7 @@ Static Function fEnvNFeDev()
     Local cResult   := ""
     Local cLocEstoq := SuperGetMV("MV_LOCPAD")
     Local cIDMovRet := ""
+    Local cTitulo   := "Erro de Integração NF Devolução "+AllTrim(SF1->F1_DOC) + " - Serie: "+ AllTrim(SF1->F1_SERIE) + " com o TOTVS Corpore RM"
 
     DBSelectArea("SD1")
     SD1->(MsSeek(xFilial("SD1") + SF1->F1_DOC + SF1->F1_SERIE + SF1->F1_FORNECE + SF1->F1_LOJA))
@@ -2117,8 +2155,8 @@ Static Function fEnvNFeDev()
     cBody += '                                  <CODLOC>' + AllTrim(cLocEstoq) + '</CODLOC> '
     cBody += '                                  <CODLOCDESTINO>' + AllTrim(cLocEstoq) + '</CODLOCDESTINO> '
     cBody += '                                  <CODCFO>' + AllTrim(SF1->F1_FORNECE) + '</CODCFO> '
-    cBody += '                                  <NUMEROMOV>' + AllTrim(SF1->F1_DOC) + '</NUMEROMOV> '
-    cBody += '                                  <SERIE>' + AllTrim(SF1->F1_SERIE) + '</SERIE> '
+    cBody += '                                  <NUMEROMOV>-1</NUMEROMOV> ' //Numero do Movimento igual a -1 para que utilize a numeracao do RM
+    cBody += '                                  <SERIE>2</SERIE> ' //Serie chumbada devido informado pelos usuarios durante prototipo
     cBody += '                                  <CODTMV>1.2.22</CODTMV> '
     cBody += '                                  <TIPO>P</TIPO> '
     cBody += '                                  <STATUS>F</STATUS> '
@@ -2426,14 +2464,14 @@ Static Function fEnvNFeDev()
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("SaveRecord")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-        fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"NF: "+AllTrim(SF1->F1_DOC) + " - Serie: "+ AllTrim(SF1->F1_SERIE),"2","ERRO")
+        u_fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"NF: "+AllTrim(SF1->F1_DOC) + " - Serie: "+ AllTrim(SF1->F1_SERIE),"2","ERRO")
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"NF: "+AllTrim(SF1->F1_DOC) + " - Serie: "+ AllTrim(SF1->F1_SERIE),"2","ERRO")
+            u_fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"NF: "+AllTrim(SF1->F1_DOC) + " - Serie: "+ AllTrim(SF1->F1_SERIE),"2","ERRO")
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -2444,7 +2482,7 @@ Static Function fEnvNFeDev()
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"NF: "+AllTrim(SF1->F1_DOC) + " - Serie: "+ AllTrim(SF1->F1_SERIE),"2","ERRO")
+                u_fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"NF: "+AllTrim(SF1->F1_DOC) + " - Serie: "+ AllTrim(SF1->F1_SERIE),"2","ERRO")
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -2461,10 +2499,20 @@ Static Function fEnvNFeDev()
                         SF1->F1_XIDMOV := cIDMovRet
                         SF1->F1_XINT_RM := "S"
                     SF1->(MSUnlock())
-                    fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),"NF: "+AllTrim(SF1->F1_DOC) + " - Serie: "+ AllTrim(SF1->F1_SERIE),"6","ENVIO")
+                    u_fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),"NF: "+AllTrim(SF1->F1_DOC) + " - Serie: "+ AllTrim(SF1->F1_SERIE),"6","ENVIO")
                 Else
+                    cIDMovRet := wsNumeroMOV() //Realiza consulta do Movimento atraves do Numero,Serie e Cliente do NFC-e
+                    
+                    If !Empty(cIDMovRet)
+                        RecLock("SF1",.F.)
+                            SF1->F1_XIDMOV := cIDMovRet
+                            SF1->F1_XINT_RM := "S"
+                        SF1->(MSUnlock())
+                        fEnvMail("RM1",cTitulo,cResult)
+                    EndIF
+
                     ApMsgAlert(cResult,"Erro Integracao TOTVS Corpore RM")
-                    fnGrvLog(cEndPoint,cBody,"",cResult,"NF: "+AllTrim(SF1->F1_DOC) + " - Serie: "+ AllTrim(SF1->F1_SERIE),"2","ERRO")
+                    u_fnGrvLog(cEndPoint,cBody,"",cResult,"NF: "+AllTrim(SF1->F1_DOC) + " - Serie: "+ AllTrim(SF1->F1_SERIE),"2","ERRO")
                 EndIF 
             Endif
 
@@ -2670,7 +2718,7 @@ User Function fCanFinan(pIDLan,pIDBaixa)
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("ExecuteWithXmlParams")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-        fnGrvLog('FinLanBaixaCancelamentoData',cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),'Erro Cancela Baixa: '+pIDBaixa,"2","ERRO")
+        u_fnGrvLog('FinLanBaixaCancelamentoData',cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),'Erro Cancela Baixa: '+pIDBaixa,"2","ERRO")
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
@@ -2679,7 +2727,7 @@ User Function fCanFinan(pIDLan,pIDBaixa)
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            fnGrvLog('FinLanBaixaCancelamentoData',cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),'Erro Cancela Baixa: '+pIDBaixa,"2","ERRO")
+            u_fnGrvLog('FinLanBaixaCancelamentoData',cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),'Erro Cancela Baixa: '+pIDBaixa,"2","ERRO")
         Else
             cResult := oWsdl:GetSoapResponse()
             cResult := StrTran(cResult, "&lt;", "<")
@@ -2689,15 +2737,15 @@ User Function fCanFinan(pIDLan,pIDBaixa)
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                fnGrvLog('FinLanBaixaCancelamentoData',cBody,cResult,oXML:Error(),'Erro Cancela Baixa: '+pIDBaixa,"2","ERRO")
+                u_fnGrvLog('FinLanBaixaCancelamentoData',cBody,cResult,oXML:Error(),'Erro Cancela Baixa: '+pIDBaixa,"2","ERRO")
             Else
                 IF oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:ExecuteWithXmlParamsResponse/ns1:ExecuteWithXmlParamsResult') <> '1'
                     cResult := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:ExecuteWithXmlParamsResponse/ns1:ExecuteWithXmlParamsResult')
                     ApMsgAlert(cResult,"Erro Integracao TOTVS Corpore RM")
-                    fnGrvLog('FinLanBaixaCancelamentoData',cBody,"",cResult,'Erro Cancela Baixa: '+pIDBaixa,"2","ERRO")
+                    u_fnGrvLog('FinLanBaixaCancelamentoData',cBody,"",cResult,'Erro Cancela Baixa: '+pIDBaixa,"2","ERRO")
                 Else
                     cResult := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:ExecuteWithXmlParamsResponse/ns1:ExecuteWithXmlParamsResult')
-                    fnGrvLog('FinLanBaixaCancelamentoData',cBody,cResult,"",'Cancela Baixa: '+pIDBaixa,"5","CANCELAMENTO")
+                    u_fnGrvLog('FinLanBaixaCancelamentoData',cBody,cResult,"",'Cancela Baixa: '+pIDBaixa,"5","CANCELAMENTO")
                     lRet := .T.
                 EndIF
             Endif
@@ -2884,7 +2932,7 @@ User Function fCanMovim(pIDMov,pNumMov)
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("ExecuteWithXmlParams")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-        fnGrvLog('MovCancelMovProc',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),'Erro Cancela Documento: '+pIDMov,"2","ERRO")
+        u_fnGrvLog('MovCancelMovProc',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),'Erro Cancela Documento: '+pIDMov,"2","ERRO")
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
@@ -2893,7 +2941,7 @@ User Function fCanMovim(pIDMov,pNumMov)
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            fnGrvLog('MovCancelMovProc',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),'Erro Cancela Documento: '+pIDMov,"2","ERRO")
+            u_fnGrvLog('MovCancelMovProc',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),'Erro Cancela Documento: '+pIDMov,"2","ERRO")
         Else
             cResult := oWsdl:GetSoapResponse()
             cResult := StrTran(cResult, "&lt;", "<")
@@ -2903,7 +2951,7 @@ User Function fCanMovim(pIDMov,pNumMov)
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                fnGrvLog('MovCancelMovProc',cBody,"",oXML:Error(),'Erro Cancela Documento: '+pIDMov,"2","ERRO")
+                u_fnGrvLog('MovCancelMovProc',cBody,"",oXML:Error(),'Erro Cancela Documento: '+pIDMov,"2","ERRO")
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -2911,10 +2959,10 @@ User Function fCanMovim(pIDMov,pNumMov)
                 IF oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:ExecuteWithXmlParamsResponse/ns1:ExecuteWithXmlParamsResult') <> '1'
                     cResult := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:ExecuteWithXmlParamsResponse/ns1:ExecuteWithXmlParamsResult')
                     ApMsgAlert(cResult,"Erro Integracao TOTVS Corpore RM")
-                    fnGrvLog('MovCancelMovProc',cBody,"",cResult,'Erro Cancela Documento: '+pIDMov,"2","ERRO")
+                    u_fnGrvLog('MovCancelMovProc',cBody,"",cResult,'Erro Cancela Documento: '+pIDMov,"2","ERRO")
                 Else
                     cResult := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:ExecuteWithXmlParamsResponse/ns1:ExecuteWithXmlParamsResult')
-                    fnGrvLog('MovCancelMovProc',cBody,cResult,"",'Cancela Documento: '+pIDMov,"5","CANCELAMENTO")
+                    u_fnGrvLog('MovCancelMovProc',cBody,cResult,"",'Cancela Documento: '+pIDMov,"5","CANCELAMENTO")
                     lRet := .T.
                 EndIF 
             
@@ -2969,7 +3017,7 @@ User Function fnConsultBX(pIDMov)
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            fnGrvLog('wsConsultaBaixa',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta Baixa ID Mov: "+ pIDMov,"2","ERRO")
+            u_fnGrvLog('wsConsultaBaixa',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta Baixa ID Mov: "+ pIDMov,"2","ERRO")
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -2980,7 +3028,7 @@ User Function fnConsultBX(pIDMov)
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                fnGrvLog('wsConsultaBaixa',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta Baixa ID Mov: "+ pIDMov,"2","ERRO")
+                u_fnGrvLog('wsConsultaBaixa',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta Baixa ID Mov: "+ pIDMov,"2","ERRO")
             else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -2992,7 +3040,7 @@ User Function fnConsultBX(pIDMov)
                 aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:NUMEROMOV'))
                 aAdd(aRet,aRetAux)
 
-                fnGrvLog('wsConsultaBaixa',cBody,cResult,"","Consulta Baixa ID Mov: "+ pIDMov,"1","CONSULTA")
+                u_fnGrvLog('wsConsultaBaixa',cBody,cResult,"","Consulta Baixa ID Mov: "+ pIDMov,"1","CONSULTA")
             Endif
 
         EndIf
@@ -3001,12 +3049,96 @@ User Function fnConsultBX(pIDMov)
 Return aRet
 
 //-----------------------------------------------------------------------------
+/*/{Protheus.doc} wsNumeroMOV
+Envelope de consulta RealizarConsultaSQL no RM
+/*/
+//-----------------------------------------------------------------------------
+Static Function wsNumeroMOV()
+
+    Local oWsdl as Object
+    Local oXml as Object 
+    Local cPath     := "/wsConsultaSQL/MEX?wsdl"
+    Local cBody     := ""
+    Local cResult   := ""
+    Local cIDMovRet := ""
+
+    cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
+    cBody += '  <soapenv:Header/> '
+    cBody += '  <soapenv:Body> '
+    cBody += '      <tot:RealizarConsultaSQL> '
+    cBody += '          <tot:codSentenca>wsNumeroMOV</tot:codSentenca> '
+    cBody += '          <tot:codColigada>0</tot:codColigada> '
+    cBody += '          <tot:codSistema>T</tot:codSistema> '
+    cBody += '          <tot:parameters>CODCOLIGADA_N=' + cCodEmp + ';CODCFO_S=' + AllTrim(SL1->L1_CLIENTE) + ';NUMEROMOV_S=' + Alltrim(SL1->L1_DOC) + '</tot:parameters> '
+    cBody += '      </tot:RealizarConsultaSQL> '
+    cBody += '  </soapenv:Body> '
+    cBody += ' </soapenv:Envelope> '
+
+    oWsdl := TWsdlManager():New()
+    oWsdl:nTimeout         := 120
+    oWsdl:lSSLInsecure     := .T.
+    oWsdl:lProcResp        := .T.
+    oWsdl:bNoCheckPeerCert := .T.
+    oWSDL:lUseNSPrefix     := .T.
+    oWsdl:lVerbose         := .T.
+    
+    If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
+        ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+    Else
+
+        oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
+
+        If !oWsdl:SendSoapMsg( cBody )
+            ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+            u_fnGrvLog('wsNumeroMOV',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta ID Mov, NFC-e: " + Alltrim(SL1->L1_DOC) + " Serie: " + Alltrim(SL1->L1_SERIE),"2","ERRO")
+            Return
+        Else
+            cResult := oWsdl:GetSoapResponse()
+            cResult := StrTran(cResult, "&lt;", "<")
+            cResult := StrTran(cResult, "&gt;&#xD;", ">")
+            cResult := StrTran(cResult, "&gt;", ">")
+            oXml := TXmlManager():New()
+
+            If !oXML:Parse( cResult )
+                ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
+                u_fnGrvLog('wsNumeroMOV',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta ID Mov, NFC-e: " + Alltrim(SL1->L1_DOC) + " Serie: " + Alltrim(SL1->L1_SERIE),"2","ERRO")
+            else
+                oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
+                oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
+                
+                cIDMovRet := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:IDMOV')
+
+                u_fnGrvLog('wsNumeroMOV',cBody,cResult,"","Consulta ID Mov, NFC-e: " + Alltrim(SL1->L1_DOC) + " Serie: " + Alltrim(SL1->L1_SERIE),"1","CONSULTA")
+            Endif
+
+        EndIf
+    EndIF 
+    
+Return cIDMovRet
+
+//-----------------------------------------------------------------------------
+/*/{Protheus.doc} fEnvMail
+Envia e-mail através do Event View do Protheus
+/*/
+//-----------------------------------------------------------------------------
+
+User Function fEnvMail(pEventID,pTitulo,pMesagem)
+
+    Local cEventID  := pEventID //Evento cadastrado na tabela E3
+    Local cTitulo   := pTitulo  //Título da Mensagem enviada por e-mail
+    Local cMesagem  := pMesagem //Mensagem enviada no corpo do e-mail
+
+    EventInsert(FW_EV_CHANEL_ENVIRONMENT, FW_EV_CATEGORY_MODULES, cEventID,FW_EV_LEVEL_INFO,"",cTitulo,cMesagem,.T.)
+
+Return
+
+//-----------------------------------------------------------------------------
 /*/{Protheus.doc} fnGrvLog
 Grava o LOG de integracao na tabela SZ1 - Log de integracao Protheus x RM
 /*/
 //-----------------------------------------------------------------------------
 
-Static Function fnGrvLog(pEndPoint,pBody,pResult,pErro,pDocto,pOper,pDscOper)
+User Function fnGrvLog(pEndPoint,pBody,pResult,pErro,pDocto,pOper,pDscOper)
     Local cIdLog  := ""
     Local _cAlias := GetNextAlias()
 
