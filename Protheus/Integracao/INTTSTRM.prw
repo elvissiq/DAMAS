@@ -18,13 +18,14 @@ User Function INTTSTRM()
     Local aRet  := {}
     Local aEndPoint := {"wsCliForResumo",;
                         "wsProdutos",;
+                        "wsNatClFiscal",;
                         "wsTabPreco",;
                         "wsTabPrcUni",;
                         "wsPontoVenda",;
                         "wsPrdCodBarras",;
                         "wsPrdFilCCusto",;
                         "wsFormaPagamento",;
-                        "wsVendedor",;
+                        "wsFpagtoCaixa",;
                         "MovMovimentoTBCData"}
     Local cSelec := ""
 

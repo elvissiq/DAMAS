@@ -3,16 +3,20 @@
 #INCLUDE "PARMTYPE.CH"
 //------------------------------------------------------------------------------
 /*{Protheus.doc} StValPro
-Funcao para validar se um determinado item poder� ser registrado no PDV
+Funcao para validar se um determinado item podera ser registrado no PDV
 @param   	PARAMIXB
 @author     Elvis Siqueira
 @version    P12
-@since      18/06/2024
+@since      17/09/2024
 @return     lRet
 /*/
 //------------------------------------------------------------------------------
 User Function StValPro()
-	Local oRest, oJson
+	Local oRest     := Nil
+	Local oJson     := Nil
+	Local aArea     := FWGetArea()
+	Local aAreaSL2  := SL2->(FWGetArea())
+	Local aAreaSB2  := SB2->(FWGetArea())
 	Local lRet      := .T.
 	Local lEstNeg   := IIF(SuperGetMV("MV_ESTNEG") == "S",.T.,.F.)
 	Local cCodProd  := PARAMIXB[1]
@@ -31,35 +35,41 @@ User Function StValPro()
 	Private nSaldo   := 0
 	Private lErIntRM := .F.
 
-	U_DSOAPF01("wsTprdLoc",cCodProd,cLocPad)
+	IF IsInCallStack("STBIMPORTSALE")
+		Return lRet
+	EndIF 
 
-	If lErIntRM //Caso ocorra erro na integracao com o RM, consulta o estoque local.
-		
-		oRest := FwRest():New(cUrlOff)                           
-		oJson := JsonObject():New()
-		
-		aAdd(aHeader, "Authorization: Basic " + Encode64(cUsrPDVOf+":"+cPasPDVOf))
-		aAdd(aHeader, "Content-Type: application/json")
-		
-		oRest:SetPath(cResource + '?iteminternalId=' + AllTrim(cCodProd))
-		
-		If (oRest:Get(aHeader))
-			cTextJson := oRest:GetResult()
-			cTextJson := oJson:FromJson(cTextJson)
-			BBGJson(oJson)
-			u_fnGrvLog("retailStockLevel",cResource + '?iteminternalId=' + AllTrim(cCodProd),cTextJson,'','Produto: ' + AllTrim(cCodProd),'2','Consulta de estoque no PDV Centralizador')
-		Else
-			ConOut("POST: " + oRest:GetLastError())
-			u_fnGrvLog("retailStockLevel",cResource + '?iteminternalId=' + AllTrim(cCodProd),'',oRest:GetLastError(),'Produto: ' + AllTrim(cCodProd),'2','Consulta de estoque no PDV Centralizador')
+	U_DSOAPF01("wsTprdLoc",cCodProd,cLocPad) //Faz consulta de estoque no TOTVS Corpore RM
+
+	//Ajusta o saldo conforme SB2 Local
+	DBSelectArea("SB2")
+	If SB2->(MSseek(xFilial("SB2")+cCodProd+cLocPad))
+		If SB2->B2_QATU < nSaldo
+			nSaldo := SB2->B2_QATU
+		EndIF
+	EndIF
+
+	If lErIntRM //Caso ocorra erro na integracao com o RM, consulta o estoque no PDV Centralizador.
+		If !Empty(cUrlOff) .And. !Empty(cUsrPDVOf) .And. !Empty(cPasPDVOf)
+			oRest := FwRest():New(cUrlOff)                           
+			oJson := JsonObject():New()
 			
-			DBSelectArea("SB2")
-			SB2->(DBGoTop())
-			If SB2->(MSseek(xFilial("SB2")+cCodProd+cLocPad))
-				nSaldo := SaldoSB2()
-			EndIF
-		EndIF 
+			aAdd(aHeader, "Authorization: Basic " + Encode64(cUsrPDVOf+":"+cPasPDVOf))
+			aAdd(aHeader, "Content-Type: application/json")
+			
+			oRest:SetPath(cResource + '?iteminternalId=' + AllTrim(cCodProd))
+			
+			If (oRest:Get(aHeader))
+				cTextJson := oRest:GetResult()
+				cTextJson := oJson:FromJson(cTextJson)
+				u_fnGrvLog("retailStockLevel",cResource + 'iteminternalId=' + AllTrim(cCodProd),cTextJson,'','Produto: ' + AllTrim(cCodProd),'2','Consulta de estoque no PDV Centralizador')
+			Else
+				ConOut("POST: " + oRest:GetLastError())
+				u_fnGrvLog("retailStockLevel",cResource + 'iteminternalId=' + AllTrim(cCodProd),'',oRest:GetLastError(),'Produto: ' + AllTrim(cCodProd),'2','Consulta de estoque no PDV Centralizador')
+			EndIF 
 
-		FreeObj(oJson)
+			FreeObj(oJson)
+		EndIF 
 	EndIF
 	
 	cQry := " SELECT SUM(L2_QUANT) AS QUANT FROM " + RetSQLName('SL2')
@@ -84,5 +94,9 @@ User Function StValPro()
 				lRet := .F.
 			EndIF
 	EndCase
+
+	FWRestArea(aArea)
+	FWRestArea(aAreaSL2)
+	FWRestArea(aAreaSB2)
 
 Return lRet

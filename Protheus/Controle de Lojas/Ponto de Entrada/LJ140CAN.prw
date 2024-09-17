@@ -58,7 +58,7 @@ User Function LJ140CAN()
                         RecLock("SL1",.F.)
                                 SL1->L1_XINT_RM := "C"
                         SL1->(MsUnlock())
-                EndIF 
+                EndIF
         EndIF 
 
         FWRestArea(aArea)
