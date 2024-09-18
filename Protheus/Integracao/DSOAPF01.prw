@@ -10,7 +10,7 @@
 User Function: DSOAPF01 - Função para Integração via Webservice SOAP com o TOTVS Corpore RM 
 @OWNER PanCristal
 @VERSION PROTHEUS 12
-@SINCE 17/09/2024
+@SINCE 18/09/2024
 @Permite
 Programa Fonte
 /*/
@@ -154,8 +154,8 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
                 If XXD->(MSSeek(Pad("RM",15)+aSM0Data[nY][01]+aSM0Data[nY][02]))
                     cCodEmp := AllTrim(XXD->XXD_COMPA)
                     cCodFil := AllTrim(XXD->XXD_BRANCH)
-                    cEmpAnt := aSM0Data[nY][01]
-                    cFilAnt := aSM0Data[nY][02]
+                    cEmpAnt := AllTrim(aSM0Data[nY][01])
+                    cFilAnt := AllTrim(aSM0Data[nY][02])
                     fwsNatClFiscal()
                 EndIF 
             Next 
@@ -170,9 +170,9 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
             For nY := 1 TO Len(aSM0Data)
                 If XXD->(MSSeek(Pad("RM",15)+aSM0Data[nY][01]+aSM0Data[nY][02]))
                     cCodEmp := AllTrim(XXD->XXD_COMPA)
-                    cCodFil :=  AllTrim(XXD->XXD_BRANCH)
-                    cEmpAnt := aSM0Data[nY][01]
-                    cFilAnt := aSM0Data[nY][02]
+                    cCodFil := AllTrim(XXD->XXD_BRANCH)
+                    cEmpAnt := AllTrim(aSM0Data[nY][01])
+                    cFilAnt := AllTrim(aSM0Data[nY][02])
                     fwsTabPreco()
                 EndIF 
             Next 
@@ -204,8 +204,8 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
                 If XXD->(MSSeek(Pad("RM",15)+aSM0Data[nY][01]+aSM0Data[nY][02]))
                     cCodEmp := AllTrim(XXD->XXD_COMPA)
                     cCodFil := AllTrim(XXD->XXD_BRANCH)
-                    cEmpAnt := aSM0Data[nY][01]
-                    cFilAnt := aSM0Data[nY][02]
+                    cEmpAnt := AllTrim(aSM0Data[nY][01])
+                    cFilAnt := AllTrim(aSM0Data[nY][02])
                     fwsPrdFilCCusto()
                 EndIF 
             Next 
@@ -226,8 +226,8 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
                 If XXD->(MSSeek(Pad("RM",15)+aSM0Data[nY][01]+aSM0Data[nY][02]))
                     cCodEmp := AllTrim(XXD->XXD_COMPA)
                     cCodFil := AllTrim(XXD->XXD_BRANCH)
-                    cEmpAnt := aSM0Data[nY][01]
-                    cFilAnt := aSM0Data[nY][02]
+                    cEmpAnt := AllTrim(aSM0Data[nY][01])
+                    cFilAnt := AllTrim(aSM0Data[nY][02])
                     fwsFpagtoCaixa()
                 EndIF 
             Next 
@@ -250,8 +250,8 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
                     If XXD->(MSSeek(Pad("RM",15)+aSM0Data[nY][01]+aSM0Data[nY][02]))
                         cCodEmp := AllTrim(XXD->XXD_COMPA)
                         cCodFil := AllTrim(XXD->XXD_BRANCH)
-                        cEmpAnt := aSM0Data[nY][01]
-                        cFilAnt := aSM0Data[nY][02]
+                        cEmpAnt := AllTrim(aSM0Data[nY][01])
+                        cFilAnt := AllTrim(aSM0Data[nY][02])
                         
                         cQry := " SELECT * FROM " + RetSQLName('SF1')
                         cQry += " WHERE D_E_L_E_T_ <> '*' "
@@ -287,8 +287,8 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
                     If XXD->(MSSeek(Pad("RM",15)+aSM0Data[nY][01]+aSM0Data[nY][02]))
                         cCodEmp := AllTrim(XXD->XXD_COMPA)
                         cCodFil := AllTrim(XXD->XXD_BRANCH)
-                        cEmpAnt := aSM0Data[nY][01]
-                        cFilAnt := aSM0Data[nY][02]
+                        cEmpAnt := AllTrim(aSM0Data[nY][01])
+                        cFilAnt := AllTrim(aSM0Data[nY][02])
                 
                         cQry := " SELECT * FROM " + RetSQLName('SL1')
                         cQry += " WHERE D_E_L_E_T_ <> '*' "
@@ -1774,8 +1774,8 @@ Static Function fEnvNFeVend()
     EndIF 
 
     DBSelectArea("SZ3")
-    SZ3->(MsSeek(xFilial("SZ3") + Posicione("SB1",1,xFilial("SB1")+SL2->L2_PRODUTO,"B1_XCLASFIS")))
-    cIDNat := SZ3->Z3_IDSINVE
+    SZ3->(MsSeek(xFilial("SZ3") + Posicione("SB1",1,xFilial("SB1")+SL2->L2_PRODUTO,"B1_XCLAFIS")))
+    cIDNat := AllTrim(SZ3->Z3_IDSINVE)
 
     cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
     cBody += '  <soapenv:Header/> '
@@ -1990,8 +1990,8 @@ Static Function fEnvNFeVend()
                         .AND. ( SL2->L2_NUM     == SL1->L1_NUM )
 
         DBSelectArea("SZ3")
-        SZ3->(MsSeek(xFilial("SZ3") + Posicione("SB1",1,xFilial("SB1")+SL2->L2_PRODUTO,"B1_XCLASFIS")))
-        cIDNat := SZ3->Z3_IDANAVE
+        SZ3->(MsSeek(xFilial("SZ3") + Posicione("SB1",1,xFilial("SB1")+SL2->L2_PRODUTO,"B1_XCLAFIS")))
+        cIDNat := AllTrim(SZ3->Z3_IDANAVE)
 
         cBody += '                              <TITMMOV> '
         cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
@@ -2191,6 +2191,7 @@ Static Function fEnvNFeVend()
                         SL1->L1_XIDMOV  := cIDMovRet
                         SL1->L1_XINT_RM := "S"
                     SL1->(MSUnlock())
+                    u_fBaixaFin(cIDMovRet)
                     u_fnGrvLog(cEndPoint,cBody,cResult,"","SL1 - "+SL1->L1_NUM,"6","ENVIO")
                 Else
 
@@ -2201,7 +2202,8 @@ Static Function fEnvNFeVend()
                             SL1->L1_XIDMOV  := cIDMovRet
                             SL1->L1_XINT_RM := "S"
                         SL1->(MSUnlock())
-                        fEnvMail("RM1",cTitulo,cResult)
+                        u_fBaixaFin(cIDMovRet)
+                        u_fEnvMail("RM1",cTitulo,cResult)
                     EndIF 
                     ApMsgAlert(cResult,"Erro Integracao TOTVS Corpore RM")
                     u_fnGrvLog(cEndPoint,cBody,"",cResult,"SL1 - "+SL1->L1_NUM,"2","ERRO")
@@ -2248,8 +2250,8 @@ Static Function fEnvNFeDev()
     SD1->(MsSeek(xFilial("SD1") + SF1->F1_DOC + SF1->F1_SERIE + SF1->F1_FORNECE + SF1->F1_LOJA))
 
     DBSelectArea("SZ3")
-    SZ3->(MsSeek(xFilial("SZ3") + Posicione("SB1",1,xFilial("SB1")+SD1->D1_COD,"B1_XCLASFIS")))
-    cIDNat := SZ3->Z3_IDSINDE
+    SZ3->(MsSeek(xFilial("SZ3") + Posicione("SB1",1,xFilial("SB1")+SD1->D1_COD,"B1_XCLAFIS")))
+    cIDNat := AllTrim(SZ3->Z3_IDSINDE)
 
     DBSelectArea("SL1")
     SL1->(DBSetOrder(2))
@@ -2428,8 +2430,8 @@ Static Function fEnvNFeDev()
                         .AND. ( SD1->D1_FORNECE == SF1->F1_FORNECE ); 
                         .AND. ( SD1->D1_LOJA    == SF1->F1_LOJA )
 
-            SZ3->(MsSeek(xFilial("SZ3") + Posicione("SB1",1,xFilial("SB1")+SD1->D1_COD,"B1_XCLASFIS")))
-            cIDNat := SZ3->Z3_IDANADE
+            SZ3->(MsSeek(xFilial("SZ3") + Posicione("SB1",1,xFilial("SB1")+SD1->D1_COD,"B1_XCLAFIS")))
+            cIDNat := AllTrim(SZ3->Z3_IDANADE)
 
             cBody += '                              <TITMMOV> '
             cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
@@ -2634,7 +2636,7 @@ Static Function fEnvNFeDev()
                             SF1->F1_XIDMOV := cIDMovRet
                             SF1->F1_XINT_RM := "S"
                         SF1->(MSUnlock())
-                        fEnvMail("RM1",cTitulo,cResult)
+                        u_fEnvMail("RM1",cTitulo,cResult)
                     EndIF
 
                     ApMsgAlert(cResult,"Erro Integracao TOTVS Corpore RM")
@@ -3115,6 +3117,7 @@ User Function fnConsultBX(pIDMov)
     Local cResult   := ""
     Local aRetAux   := {}
     Local aRet      := {}
+    Local nY 
 
     cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
     cBody += '  <soapenv:Header/> '
@@ -3160,12 +3163,19 @@ User Function fnConsultBX(pIDMov)
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
                 
-                aRetAux := {}
-                aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:IDMOV'))
-                aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:IDLAN'))
-                aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:IDBAIXA'))
-                aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:NUMEROMOV'))
-                aAdd(aRet,aRetAux)
+                For nY := 1 To oXML:XPathChildCount('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet')
+                    aRetAux := {}
+                    aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']'+'/ns1:IDMOV'))
+                    aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']'+'/ns1:IDLAN'))
+                    aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']'+'/ns1:IDBAIXA'))
+                    aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']'+'/ns1:NUMEROMOV'))
+                    aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']'+'/ns1:DATAVENCIMENTO'))
+                    aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']'+'/ns1:CODCOLCXA'))
+                    aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']'+'/ns1:CODCXA'))
+                    aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']'+'/ns1:IDFORMAPAGTO'))
+                    aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']'+'/ns1:VALORORIGINAL'))
+                    aAdd(aRet,aRetAux)
+                Next
 
                 u_fnGrvLog('wsConsultaBaixa',cBody,cResult,"","Consulta Baixa ID Mov: "+ pIDMov,"1","CONSULTA")
             Endif
@@ -3174,6 +3184,221 @@ User Function fnConsultBX(pIDMov)
     EndIF 
     
 Return aRet
+
+//-----------------------------------------------------------------------------
+/*/{Protheus.doc} fBaixaFin
+Realiza baixa financeira no RM
+/*/
+//-----------------------------------------------------------------------------
+
+User Function fBaixaFin(cIDMOV)
+    Local oWsdl as Object
+    Local oXml as Object 
+    Local cPath     := "/wsProcess/MEX?wsdl"
+    Local cBody     := ""
+    Local cResult   := ""
+    Local aBaixa    := {}
+    Local cIDLan    := ""
+    Local dDataVenc := CToD("//")
+    Local cHoraVenc := ""
+    Local cCodCX    := ""
+    Local cCodColCX := ""
+    Local cIDFormPg := ""
+    Local cValor    := ""
+    Local nY 
+
+    Default lRet    := .F.
+    Default cIDMOV  := "" 
+
+    aBaixa := u_fnConsultBX(AllTrim(cIDMOV))
+
+    IF Len(aBaixa) <= 0
+        Return
+    EndIF 
+
+    For nY := 1 To Len(aBaixa)
+
+        IF aBaixa[nY][3] == '0'
+
+            cIDLan      := aBaixa[nY][2]
+            dDataVenc   := CToD(SubStr(aBaixa[nY][5],9,2)+"/"+SubStr(aBaixa[nY][5],6,2)+"/"+SubStr(aBaixa[nY][5],1,4))
+            cHoraVenc   := SubStr(aBaixa[nY][5],12)
+            cCodColCX   := aBaixa[nY][6]
+            cCodCX      := aBaixa[nY][7]
+            cIDFormPg   := aBaixa[nY][8]
+            cValor      := aBaixa[nY][9]
+
+            cBody := '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/">'
+            cBody += '<soapenv:Header/>'
+            cBody += '<soapenv:Body>'
+            cBody += '<tot:ExecuteWithXmlParams>'
+            cBody += '<tot:ProcessServerName>FinLanBaixaTBCData</tot:ProcessServerName>'
+            cBody += '<tot:strXmlParams>'
+            cBody += '<![CDATA[<?xml version="1.0" encoding="utf-16"?>'
+            cBody += '<FinLanBaixaTBCParamsProc xmlns:i="http://www.w3.org/2001/XMLSchema-instance" z:Id="i1" xmlns:z="http://schemas.microsoft.com/2003/10/Serialization/" xmlns="http://www.totvs.com.br/RM/">'
+            cBody += '<CodUsuario xmlns="http://www.totvs.com/">' + cUser + '</CodUsuario>'
+            cBody += '<Context xmlns:d2p1="http://www.totvs.com.br/RM/" z:Id="i2" xmlns="http://www.totvs.com/">'
+            cBody += '<d2p1:_params xmlns:d3p1="http://schemas.microsoft.com/2003/10/Serialization/Arrays">'
+            cBody += '<d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:Key xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">$EXERCICIOFISCAL</d3p1:Key>'
+            cBody += '<d3p1:Value xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:int">2</d3p1:Value>'
+            cBody += '</d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:Key xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">$CODLOCPRT</d3p1:Key>'
+            cBody += '<d3p1:Value xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:int">-1</d3p1:Value>'
+            cBody += '</d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:Key xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">$CODTIPOCURSO</d3p1:Key>'
+            cBody += '<d3p1:Value xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:int">-1</d3p1:Value>'
+            cBody += '</d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:Key xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">$EDUTIPOUSR</d3p1:Key>'
+            cBody += '<d3p1:Value xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">-1</d3p1:Value>'
+            cBody += '</d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:Key xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">$CODUNIDADEBIB</d3p1:Key>'
+            cBody += '<d3p1:Value xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:int">-1</d3p1:Value>'
+            cBody += '</d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:Key xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">$CODCOLIGADA</d3p1:Key>'
+            cBody += '<d3p1:Value xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:int">' + cCodEmp + '</d3p1:Value>'
+            cBody += '</d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:Key xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">$RHTIPOUSR</d3p1:Key>'
+            cBody += '<d3p1:Value xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">-1</d3p1:Value>'
+            cBody += '</d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:Key xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">$CODIGOEXTERNO</d3p1:Key>'
+            cBody += '<d3p1:Value xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">-1</d3p1:Value>'
+            cBody += '</d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:Key xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">$CODSISTEMA</d3p1:Key>'
+            cBody += '<d3p1:Value xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">T</d3p1:Value>'
+            cBody += '</d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:Key xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">$CODUSUARIOSERVICO</d3p1:Key>'
+            cBody += '<d3p1:Value xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string"></d3p1:Value>'
+            cBody += '</d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:Key xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">$IDPRJ</d3p1:Key>'
+            cBody += '<d3p1:Value xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:int">-1</d3p1:Value>'
+            cBody += '</d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:Key xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">$CHAPAFUNCIONARIO</d3p1:Key>'
+            cBody += '<d3p1:Value xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">-1</d3p1:Value>'
+            cBody += '</d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '<d3p1:Key xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:string">$CODFILIAL</d3p1:Key>'
+            cBody += '<d3p1:Value xmlns:d5p1="http://www.w3.org/2001/XMLSchema" i:type="d5p1:int">' + cCodFil + '</d3p1:Value>'
+            cBody += '</d3p1:KeyValueOfanyTypeanyType>'
+            cBody += '</d2p1:_params>'
+            cBody += '<d2p1:Environment>WebServices</d2p1:Environment>'
+            cBody += '</Context>'
+            cBody += '<PrimaryKeyList xmlns:d2p1="http://schemas.microsoft.com/2003/10/Serialization/Arrays" xmlns="http://www.totvs.com/">'
+            cBody += '<d2p1:ArrayOfanyType>'
+            cBody += '<d2p1:anyType xmlns:d4p1="http://www.w3.org/2001/XMLSchema" i:type="d4p1:int">0</d2p1:anyType>'
+            cBody += '</d2p1:ArrayOfanyType>'
+            cBody += '<d2p1:ArrayOfanyType>'
+            cBody += '<d2p1:anyType xmlns:d4p1="http://www.w3.org/2001/XMLSchema" i:type="d4p1:decimal">0</d2p1:anyType>'
+            cBody += '</d2p1:ArrayOfanyType>'
+            cBody += '<d2p1:ArrayOfanyType>'
+            cBody += '<d2p1:anyType xmlns:d4p1="http://www.w3.org/2001/XMLSchema" i:type="d4p1:string">TEXTO</d2p1:anyType>'
+            cBody += '</d2p1:ArrayOfanyType>'
+            cBody += '<d2p1:ArrayOfanyType>'
+            cBody += '<d2p1:anyType xmlns:d4p1="http://www.w3.org/2001/XMLSchema" i:type="d4p1:dateTime">2024-09-16T00:00:00-03:00</d2p1:anyType>'
+            cBody += '</d2p1:ArrayOfanyType>'
+            cBody += '</PrimaryKeyList>'
+            cBody += '<PrimaryKeyNames xmlns:d2p1="http://schemas.microsoft.com/2003/10/Serialization/Arrays" xmlns="http://www.totvs.com/">'
+            cBody += '<d2p1:string>COLUNAPK</d2p1:string>'
+            cBody += '</PrimaryKeyNames>'
+            cBody += '<CodColigada>' + cCodEmp + '</CodColigada>'
+            cBody += '<CodMoeda>R$</CodMoeda>'
+            cBody += '<ContabilizarPosBaixa>false</ContabilizarPosBaixa>'
+            cBody += '<CotacaoBaixa>0</CotacaoBaixa>'
+            cBody += '<DataBaixa>'+ FWTimeStamp(3, dDataVenc, cHoraVenc) +'</DataBaixa>'
+            cBody += '<DataSistema>'+ FWTimeStamp(3, dDataBase, Time()) +'</DataSistema>'
+            cBody += '<HistoricoBaixa></HistoricoBaixa>'
+            cBody += '<MotivoBxProtheus i:nil="true" />'
+            cBody += '<TipoGeracaoExtrato>ExtratoParaCadaLancamento</TipoGeracaoExtrato>'
+            cBody += '<UsarDataVencimentoBaixa>false</UsarDataVencimentoBaixa>'
+            cBody += '<CodUsuario>' + cUser + '</CodUsuario>'
+            cBody += '<IsMsgUnicaProtheusEai2>false</IsMsgUnicaProtheusEai2>'
+            cBody += '<Pagamentos>'
+            cBody += '<FinPagamentoBaixaTBCParamsProc>'
+            cBody += '<LanctoParaBaixas/>'
+            cBody += '<ListIdLan xmlns:d4p1="http://schemas.microsoft.com/2003/10/Serialization/Arrays">'
+            cBody += '<d4p1:int>' + cIDLan + '</d4p1:int>'
+            cBody += '</ListIdLan>'
+            cBody += '<MeioPagamento>'
+            cBody += '<Cartao/>'
+            cBody += '<Cheque/>'
+            cBody += '<CodColCxa>' + cCodColCX + '</CodColCxa>'
+            cBody += '<CodColigada>' + cCodEmp + '</CodColigada>'
+            cBody += '<CodCxa>' + cCodCX + '</CodCxa>'
+            cBody += '<IdFormaPagto>' + cIDFormPg + '</IdFormaPagto>'
+            cBody += '<Valor>' + cValor + '</Valor>'
+            cBody += '</MeioPagamento>'
+            cBody += '</FinPagamentoBaixaTBCParamsProc>'
+            cBody += '</Pagamentos>'
+            cBody += '<TipoGeracaoExtratoBaixa>ExtratoParaCadaLancamento</TipoGeracaoExtratoBaixa>'
+            cBody += '<ValoresAlteracao/>'
+            cBody += '</FinLanBaixaTBCParamsProc>]]>'
+            cBody += '</tot:strXmlParams>'
+            cBody += '</tot:ExecuteWithXmlParams>'
+            cBody += '</soapenv:Body>'
+            cBody += '</soapenv:Envelope>'
+
+            oWsdl := TWsdlManager():New()
+            oWsdl:nTimeout         := 120
+            oWsdl:lSSLInsecure     := .T.
+            oWsdl:lProcResp        := .T.
+            oWsdl:bNoCheckPeerCert := .T.
+            oWSDL:lUseNSPrefix     := .T.
+            oWsdl:lVerbose         := .T.
+            
+            If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("ExecuteWithXmlParams")
+                ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+                u_fnGrvLog('FinLanBaixaTBCData',cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),'Erro Baixa: '+cIDLan,"2","ERRO")
+            Else
+
+                oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
+
+                cBody := AllTrim(cBody)
+
+                If !oWsdl:SendSoapMsg( cBody )
+                    ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+                    u_fnGrvLog('FinLanBaixaTBCData',cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),'Erro Baixa: '+cIDLan,"2","ERRO")
+                Else
+                    cResult := oWsdl:GetSoapResponse()
+                    cResult := StrTran(cResult, "&lt;", "<")
+                    cResult := StrTran(cResult, "&gt;&#xD;", ">")
+                    cResult := StrTran(cResult, "&gt;", ">")
+                    oXml := TXmlManager():New()
+
+                    If !oXML:Parse( cResult )
+                        ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
+                        u_fnGrvLog('FinLanBaixaTBCData',cBody,cResult,oXML:Error(),'Erro Baixa: '+cIDLan,"2","ERRO")
+                    Else
+                        oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
+                        oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
+
+                        IF oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:ExecuteWithXmlParamsResponse/ns1:ExecuteWithXmlParamsResult') != '1'
+                            cResult := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:ExecuteWithXmlParamsResponse/ns1:ExecuteWithXmlParamsResult')
+                            ApMsgAlert(cResult,"Erro Integracao TOTVS Corpore RM")
+                            u_fnGrvLog('FinLanBaixaTBCData',cBody,"",cResult,'Erro Baixa: '+cIDLan,"2","ERRO")
+                        Else
+                            cResult := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:ExecuteWithXmlParamsResponse/ns1:ExecuteWithXmlParamsResult')
+                            u_fnGrvLog('FinLanBaixaTBCData',cBody,cResult,"",'Baixa: '+cIDLan,"8","BAIXA")
+                            lRet := .T.
+                        EndIF
+                    Endif
+
+                EndIf
+            EndIF
+        EndIF 
+    Next 
+
+Return
 
 //-----------------------------------------------------------------------------
 /*/{Protheus.doc} fInutNFCe
@@ -3328,7 +3553,7 @@ Static Function wsNumeroMOV()
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            u_fnGrvLog('wsNumeroMOV',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta ID Mov, NFC-e: " + Alltrim(SL1->L1_DOC) + " Serie: " + Alltrim(SL1->L1_SERIE),"2","ERRO")
+            u_fnGrvLog('wsNumeroMOV',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta ID Mov da NFC-e: " + Alltrim(SL1->L1_DOC) + " Serie: " + Alltrim(SL1->L1_SERIE),"2","ERRO")
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -3339,14 +3564,14 @@ Static Function wsNumeroMOV()
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                u_fnGrvLog('wsNumeroMOV',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta ID Mov, NFC-e: " + Alltrim(SL1->L1_DOC) + " Serie: " + Alltrim(SL1->L1_SERIE),"2","ERRO")
+                u_fnGrvLog('wsNumeroMOV',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta ID Mov da NFC-e: " + Alltrim(SL1->L1_DOC) + " Serie: " + Alltrim(SL1->L1_SERIE),"2","ERRO")
             else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
                 
                 cIDMovRet := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:IDMOV')
 
-                u_fnGrvLog('wsNumeroMOV',cBody,cResult,"","Consulta ID Mov, NFC-e: " + Alltrim(SL1->L1_DOC) + " Serie: " + Alltrim(SL1->L1_SERIE),"1","CONSULTA")
+                u_fnGrvLog('wsNumeroMOV',cBody,cResult,"","Consulta ID Mov da NFC-e: " + Alltrim(SL1->L1_DOC) + " Serie: " + Alltrim(SL1->L1_SERIE),"1","CONSULTA")
             Endif
 
         EndIf
