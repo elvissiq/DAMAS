@@ -10,7 +10,7 @@
 User Function: DSOAPF01 - Função para Integração via Webservice SOAP com o TOTVS Corpore RM 
 @OWNER PanCristal
 @VERSION PROTHEUS 12
-@SINCE 18/09/2024
+@SINCE 19/09/2024
 @Permite
 Programa Fonte
 /*/
@@ -56,6 +56,8 @@ User Function DSOAPF01(pEndpoint,pCodProd,pLocPad)
         u_fIntRM('MovMovCopiaReferenciaData',.F.)
 
         u_fIntRM('MovMovimentoTBCData',.F.)
+
+        u_fIntRM('MovMovimentoPedido',.F.)
     Else
         Processa({|| u_fIntRM(cEndPoint,.T.,pCodProd,pLocPad)}, "Integrando Endpoint " + cEndPoint + "...")
     EndIf
@@ -103,21 +105,29 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
     
     Do Case
         Case (IsInCallStack("LOJA701"))
-            cEndPoint := "MovMovimentoTBCData"
+            IF SL1->L1_SITUA == 'OK' .And. ( Empty(SL1->L1_XINT_RM) .Or. AllTrim(SL1->L1_XINT_RM) == "C" )
+                cEndPoint := "MovMovimentoTBCData"
+            ElseIF SL1->L1_SITUA == 'FR' .And. ( Empty(SL1->L1_XINT_RM) .Or. AllTrim(SL1->L1_XINT_RM) == "C" )
+                cEndPoint := "MovMovimentoPedido"
+            Else
+                IF !IsBlind()
+                    FWAlertHelp('O orçamento '+ SL1->L1_NUM +', não será enviado!',;
+                                'Apenas orçamentos com o campo L1_SITUA igual a OK ou FR e os campos (L1_XIDMOV e L1_XINT_RM) em branco são enviados ao RM.')
+                EndIF
+                Return
+            EndIF 
             lMsg := .T.
         Case (IsInCallStack("MATA103"))
-            cEndPoint := "MovMovCopiaReferenciaData"
-            lMsg := .T.
-        Case (IsInCallStack("MATA410"))
-            DBSelectArea("SL1")
-            SL1->(DBSetOrder(2))
-            If SL1->(MsSeek(xFilial("SL1") + SC5->C5_SERIE + SC5->C5_NOTA ))
-                cEndPoint := "MovMovimentoTBCData"
-                lMsg := .T.
+            If Empty(SF1->F1_XIDMOV) .And. ( Empty(SF1->F1_XINT_RM) .Or. AllTrim(SF1->F1_XINT_RM) == "C" )
+                cEndPoint := "MovMovCopiaReferenciaData"
             Else
-                FWAlertHelp("Existem itens ainda não faturados no pedido de venda " + AllTrim(SC5->C5_NUM) + ".",;
-                            "Para envio ao TOTVS Corpore RM é faz necesário que todos os itens do Pedido de Venda estejam liberados e faturados.")
+                IF !IsBlind()
+                    FWAlertHelp('A Nota Fiscal: '+ AllTrim(SF1->F1_DOC) + " / Série: " + AllTrim(SF1->F1_SERIE) +', não será enviada!',;
+                                'Apenas Notas Fiscais com os campos (F1_XIDMOV e F1_XINT_RM) em branco são enviadas ao RM.')
+                EndIF
+                Return
             EndIF 
+            lMsg := .T. 
     End Case
 
     DBSelectArea("XXD")
@@ -295,7 +305,7 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
                         cQry += " AND L1_FILIAL = '" + xFilial("SL1") + "' "
                         cQry += " AND L1_DOC <> '' "
                         cQry += " AND L1_SERIE <> '' "
-                        cQry += " AND L1_SITUA IN ('OK','FR') "
+                        cQry += " AND L1_SITUA = 'OK' "
                         cQry += " AND L1_XINT_RM = '' "
                         cQry := ChangeQuery(cQry)
                         IF Select(_cAlias) <> 0
@@ -314,6 +324,48 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
 
             Else    
                 fEnvNFeVend()
+            EndIF  
+            FwLogMsg("INFO", , "REST", FunName(), "", "01", '=== Finalizou a integracao do Endpoint: '+ cEndPoint +' ===')
+        
+        Case cEndPoint == 'MovMovimentoPedido'
+            FwLogMsg("INFO", , "REST", FunName(), "", "01", '=== Integrando Endpoint: '+ cEndPoint +' ===')
+            IF IsInCallStack("U_INTTSTRM") .And. IsInCallStack("WFLAUNCHER")
+                
+                For nY := 1 TO Len(aSM0Data)
+                    If XXD->(MSSeek(Pad("RM",15)+aSM0Data[nY][01]+aSM0Data[nY][02]))
+                        cCodEmp := AllTrim(XXD->XXD_COMPA)
+                        cCodFil := AllTrim(XXD->XXD_BRANCH)
+                        cEmpAnt := AllTrim(aSM0Data[nY][01])
+                        cFilAnt := AllTrim(aSM0Data[nY][02])
+                
+                        cQry := " SELECT * FROM " + RetSQLName('SL1')
+                        cQry += " WHERE D_E_L_E_T_ <> '*' "
+                        cQry += " AND L1_FILIAL = '" + xFilial("SL1") + "' "
+                        cQry += " AND L1_DOC <> '' "
+                        cQry += " AND L1_SERIE <> '' "
+                        cQry += " AND L1_SITUA = 'FR' "
+                        cQry += " AND L1_STATUS = 'F' "
+                        cQry += " AND L1_NUMORIG <> '' "
+                        cQry += " AND L1_DOCPED <> '' "
+                        cQry += " AND L1_SERPED <> '' "
+                        cQry += " AND L1_XINT_RM = '' "
+                        cQry := ChangeQuery(cQry)
+                        IF Select(_cAlias) <> 0
+                            (_cAlias)->(DbCloseArea())
+                        EndIf
+                        dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQry),_cAlias,.T.,.T.)
+                        DBSelectArea("SL1")
+                        While !(_cAlias)->(EoF())
+                            SL1->(MSSeek(xFilial("SL1")+(_cAlias)->L1_NUM))
+                            fEnvPedVend()
+                        (_cAlias)->(DBSkip())
+                        EndDo
+                        (_cAlias)->(DbCloseArea()) 
+                    EndIF 
+                Next
+
+            Else    
+                fEnvPedVend()
             EndIF  
             FwLogMsg("INFO", , "REST", FunName(), "", "01", '=== Finalizou a integracao do Endpoint: '+ cEndPoint +' ===')
         
@@ -2223,6 +2275,344 @@ Static Function fEnvNFeVend()
 Return
 
 //-----------------------------------------------------------------------------
+/*/{Protheus.doc} fEnvPedVend
+Realiza o envio do Pedido de Venda para o Copore RM
+/*/
+//-----------------------------------------------------------------------------
+
+Static Function fEnvPedVend()
+
+    Local aArea    := FWGetArea()
+    Local aAreaSL1 := SL1->(FWGetArea())
+    Local aAreaSL2 := SL2->(FWGetArea())
+    Local aAreaSB1 := SB1->(FWGetArea())
+    Local oWsdl as Object
+    Local oXml as Object 
+    Local cPath     := "/wsDataServer/MEX?wsdl"
+    Local cBody     := ""
+    Local cResult   := ""
+    Local cLocEstoq := SuperGetMV("MV_LOCPAD")
+    Local cIDMovRet := ""
+    Local cTitulo   := "Erro de Integração de Pedido de Venda com o TOTVS Corpore RM - Orçamento: " + SL1->L1_NUM
+
+    DBSelectArea("SL2")
+    IF !SL2->(MsSeek(SL1->L1_FILIAL + SL1->L1_NUM ))
+        Return
+    EndIF 
+
+    cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
+    cBody += '  <soapenv:Header/> '
+    cBody += '  <soapenv:Body> '
+    cBody += '      <tot:SaveRecord> '
+    cBody += '          <tot:DataServerName>MovMovimentoTBCData</tot:DataServerName> '
+    cBody += '          <tot:XML> '
+    cBody += '                    <![CDATA[ '
+    cBody += '                          <MovMovimento> '
+    cBody += '                              <TMOV> '
+    cBody += '                                  <CODCOLIGADA>'+ cCodEmp +'</CODCOLIGADA> '
+    cBody += '                                  <IDMOV>-1</IDMOV> '
+    cBody += '                                  <CODFILIAL>' + cCodFil + '</CODFILIAL> '
+    cBody += '                                  <CODLOC>' + cLocEstoq + '</CODLOC> ' //Codigo do Local de Destino
+    cBody += '                                  <CODCFO>' + SL1->L1_CLIENTE + '</CODCFO> ' //Codigo do Cliente / Fornecedor
+    cBody += '                                  <NUMEROMOV>-1</NUMEROMOV> '
+    cBody += '                                  <SERIE>PVF</SERIE> '
+    cBody += '                                  <CODTMV>2.1.10</CODTMV> '
+    cBody += '                                  <TIPO>P</TIPO> '
+    cBody += '                                  <STATUS>A</STATUS> '
+    cBody += '                                  <MOVIMPRESSO>0</MOVIMPRESSO> '
+    cBody += '                                  <DOCIMPRESSO>0</DOCIMPRESSO> '
+    cBody += '                                  <FATIMPRESSA>0</FATIMPRESSA> '
+    cBody += '                                  <DATAEMISSAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time()) )  )+ '</DATAEMISSAO> '
+    cBody += '                                  <COMISSAOREPRES>0,0000</COMISSAOREPRES> '
+    cBody += '                                  <CODCPG>114</CODCPG> ' //Aqui
+    cBody += '                                  <VALORBRUTO>' + Alltrim(AlltoChar(SL1->L1_VALBRUT, cPicVal)) + '</VALORBRUTO> '
+    cBody += '                                  <VALORLIQUIDO>' + Alltrim(AlltoChar(SL1->L1_VLRLIQ, cPicVal)) + '</VALORLIQUIDO> '
+    cBody += '                                  <VALOROUTROS>0,0000</VALOROUTROS> '
+    cBody += '                                  <PERCENTUALDESC>'+ Alltrim(AlltoChar(SL1->L1_DESCNF, cPicVal)) +'</PERCENTUALDESC> '
+    cBody += '                                  <VALORDESC>'+ Alltrim(AlltoChar(SL1->L1_DESCONT, cPicVal)) +'</VALORDESC> '
+    cBody += '                                  <PERCENTUALDESP>0,0000</PERCENTUALDESP> '
+    cBody += '                                  <VALORDESP>'+ Alltrim(AlltoChar(SL1->L1_DESPESA, cPicVal)) +'</VALORDESP> '
+    cBody += '                                  <PERCCOMISSAO>'+ Alltrim(AlltoChar(SL1->L1_COMIS, cPicVal)) +'</PERCCOMISSAO> '
+    cBody += '                                  <PESOLIQUIDO>0,0000</PESOLIQUIDO> '
+    cBody += '                                  <PESOBRUTO>0,0000</PESOBRUTO> '
+    cBody += '                                  <CODTB1FLX>001</CODTB1FLX> ' //aQUI
+    cBody += '                                  <CODTB4FLX>1.01</CODTB4FLX> ' //aQUI
+    cBody += '                                  <IDMOVLCTFLUXUS>-1</IDMOVLCTFLUXUS> '
+    cBody += '                                  <CODMOEVALORLIQUIDO>R$</CODMOEVALORLIQUIDO> '
+    cBody += '                                  <DATABASEMOV>' + ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time()) )  )+ '</DATABASEMOV> '
+    cBody += '                                  <DATAMOVIMENTO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time()) )  )+ '</DATAMOVIMENTO> '
+    cBody += '                                  <NUMEROLCTGERADO>1</NUMEROLCTGERADO> '
+    cBody += '                                  <GEROUFATURA>0</GEROUFATURA> '
+    cBody += '                                  <NUMEROLCTABERTO>1</NUMEROLCTABERTO> '
+    cBody += '                                  <CODCFOAUX>CXXXXXXXXXX</CODCFOAUX> '
+    cBody += '                                  <CODCCUSTO>' + Alltrim(Posicione("SZ2",1, xFilial("SZ2") + SL2->L2_PRODUTO,"Z2_CCUSTO")) + '</CODCCUSTO> ' //Nao tera Centro de Custo no cabecalho
+    cBody += '                                  <PERCCOMISSAOVEN2>0,0000</PERCCOMISSAOVEN2> '
+    cBody += '                                  <CODCOLCFO>0</CODCOLCFO> '
+    cBody += '                                  <CODUSUARIO>' + cUser + '</CODUSUARIO> '
+    cBody += '                                  <GERADOPORLOTE>0</GERADOPORLOTE> '
+    cBody += '                                  <STATUSEXPORTCONT>0</STATUSEXPORTCONT> '
+    cBody += '                                  <CAMPOLIVRE1>' + AllTrim(SL1->L1_XMSGI) + '</CAMPOLIVRE1> '
+    cBody += '                                  <CAMPOLIVRE2/> '
+    cBody += '                                  <CAMPOLIVRE3/> ' 
+    cBody += '                                  <GEROUCONTATRABALHO>0</GEROUCONTATRABALHO> '
+    cBody += '                                  <GERADOPORCONTATRABALHO>0</GERADOPORCONTATRABALHO> '
+    cBody += '                                  <HORULTIMAALTERACAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time()) )  )+ '</HORULTIMAALTERACAO> '
+    cBody += '                                  <INDUSOOBJ>0,00</INDUSOOBJ> '
+    cBody += '                                  <INTEGRADOBONUM>0</INTEGRADOBONUM> '
+    cBody += '                                  <FLAGPROCESSADO>0</FLAGPROCESSADO> '
+    cBody += '                                  <ABATIMENTOICMS>0,0000</ABATIMENTOICMS> '
+    cBody += '                                  <HORARIOEMISSAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) )+ '</HORARIOEMISSAO> '
+    cBody += '                                  <USUARIOCRIACAO>' + cUser + '</USUARIOCRIACAO> '
+    cBody += '                                  <DATACRIACAO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) )+ '</DATACRIACAO> '
+    cBody += '                                  <STSEMAIL>0</STSEMAIL> '
+    cBody += '                                  <VALORBRUTOINTERNO>' + Alltrim(AlltoChar(SL1->L1_VALBRUT, cPicVal)) + '</VALORBRUTOINTERNO> '
+    cBody += '                                  <VINCULADOESTOQUEFL>0</VINCULADOESTOQUEFL> '
+    cBody += '                                  <VRBASEINSSOUTRAEMPRESA>0,0000</VRBASEINSSOUTRAEMPRESA> '
+    cBody += '                                  <VALORDESCCONDICIONAL>0,0000</VALORDESCCONDICIONAL> '
+    cBody += '                                  <VALORDESPCONDICIONAL>0,0000</VALORDESPCONDICIONAL> '
+    cBody += '                                  <INTEGRADOAUTOMACAO>0</INTEGRADOAUTOMACAO> '
+    cBody += '                                  <INTEGRAAPLICACAO>T</INTEGRAAPLICACAO> '
+    cBody += '                                  <DATALANCAMENTO>' + ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) )+ '</DATALANCAMENTO> '
+    cBody += '                                  <RECIBONFESTATUS>0</RECIBONFESTATUS> '
+    cBody += '                                  <IDMOVCFO/> '
+    cBody += '                                  <VALORMERCADORIAS>' + Alltrim(AlltoChar(SL1->L1_VALMERC, cPicVal)) + '</VALORMERCADORIAS> '
+    cBody += '                                  <USARATEIOVALORFIN>0</USARATEIOVALORFIN> '
+    cBody += '                                  <CODCOLCFOAUX>0</CODCOLCFOAUX> '
+    cBody += '                                  <VALORRATEIOLAN>' + Alltrim(AlltoChar(SL1->L1_VLRLIQ, cPicVal)) + '</VALORRATEIOLAN> '
+    cBody += '                                  <HISTORICOLONGO/> '
+    cBody += '                                  <RATEIOCCUSTODEPTO>' + Alltrim(AlltoChar(SL1->L1_VLRLIQ, cPicVal)) + '</RATEIOCCUSTODEPTO> '
+    cBody += '                                  <VALORBRUTOORIG>' + Alltrim(AlltoChar(SL1->L1_VALBRUT, cPicVal)) + '</VALORBRUTOORIG> '
+    cBody += '                                  <VALORLIQUIDOORIG>' + Alltrim(AlltoChar(SL1->L1_VLRLIQ, cPicVal)) + '</VALORLIQUIDOORIG> '
+    cBody += '                                  <VALOROUTROSORIG>' + Alltrim(AlltoChar(SL1->L1_VLRLIQ, cPicVal)) + '</VALOROUTROSORIG> '
+    cBody += '                                  <VALORRATEIOLANORIG>' + Alltrim(AlltoChar(SL1->L1_VLRLIQ, cPicVal)) + '</VALORRATEIOLANORIG> '
+    cBody += '                                  <FLAGCONCLUSAO>0</FLAGCONCLUSAO> '
+    cBody += '                                  <STATUSPARADIGMA>N</STATUSPARADIGMA> '
+    cBody += '                                  <STATUSINTEGRACAO>N</STATUSINTEGRACAO> '
+    cBody += '                                  <PERCCOMISSAOVEN3>0,0000</PERCCOMISSAOVEN3> '
+    cBody += '                                  <PERCCOMISSAOVEN4>0,0000</PERCCOMISSAOVEN4> '
+    cBody += '                                  <STATUSMOVINCLUSAOCOLAB>0</STATUSMOVINCLUSAOCOLAB> '
+    cBody += '                                  <CODCOLIGADA1>' + cCodEmp + '</CODCOLIGADA1> '
+    cBody += '                                  <IDMOVHST>-1</IDMOVHST> '
+    cBody += '                              </TMOV> '
+    cBody += '                              <TNFE> '
+    cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
+    cBody += '                                  <IDMOV>-1</IDMOV> '
+    cBody += '                                  <VALORSERVICO>0,0000</VALORSERVICO> '
+    cBody += '                                  <DEDUCAOSERVICO>0,0000</DEDUCAOSERVICO> '
+    cBody += '                                  <ALIQUOTAISS>0,0000</ALIQUOTAISS>'
+    cBody += '                                  <ISSRETIDO>0</ISSRETIDO> '
+    cBody += '                                  <VALORISS>0,0000</VALORISS> '
+    cBody += '                                  <VALORCREDITOIPTU>0,0000</VALORCREDITOIPTU> '
+    cBody += '                                  <BASEDECALCULO>0,0000</BASEDECALCULO> '
+    cBody += '                                  <EDITADO>0</EDITADO> '
+    cBody += '                              </TNFE> '
+    cBody += '                              <TMOVFISCAL> '
+    cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
+    cBody += '                                  <IDMOV>-1</IDMOV> '
+    cBody += '                                  <CONTRIBUINTECREDENCIADO>0</CONTRIBUINTECREDENCIADO> '
+    cBody += '                                  <OPERACAOCONSUMIDORFINAL>0</OPERACAOCONSUMIDORFINAL> '
+    cBody += '                                  <OPERACAOPRESENCIAL>0</OPERACAOPRESENCIAL> '
+    cBody += '                              </TMOVFISCAL> '
+    cBody += '                              <TMOVRATCCU> '
+    cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
+    cBody += '                                  <IDMOV>-1</IDMOV> '
+    cBody += '                                  <CODCCUSTO>' + Alltrim(Posicione("SZ2",1, xFilial("SZ2") + SL2->L2_PRODUTO,"Z2_CCUSTO")) + '</CODCCUSTO> '
+    cBody += '                                  <NOME>' + Alltrim(Posicione("SZ2",1, xFilial("SZ2") + SL2->L2_PRODUTO,"Z2_DESCCC")) + '</NOME> '
+    cBody += '                                  <VALOR>' + Alltrim(AlltoChar(SL1->L1_VLRLIQ, cPicVal)) + '</VALOR> '
+    cBody += '                                  <IDMOVRATCCU>-1</IDMOVRATCCU> '
+    cBody += '                              </TMOVRATCCU> '
+
+    //Itens do Cupom Fiscal
+    While !SL2->(Eof()) .AND. ( SL2->L2_FILIAL  == SL1->L1_FILIAL ); 
+                        .AND. ( SL2->L2_NUM     == SL1->L1_NUM )
+
+        cBody += '                              <TITMMOV> '
+        cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
+        cBody += '                                  <IDMOV>-1</IDMOV>  '
+        cBody += '                                  <NSEQITMMOV>' + Alltrim(AlltoChar(Val(SL2->L2_ITEM))) +  '</NSEQITMMOV> '
+        cBody += '                                  <CODFILIAL>' + cCodFil + '</CODFILIAL> '
+        cBody += '                                  <NUMEROSEQUENCIAL>' + Alltrim(AlltoChar(Val(SL2->L2_ITEM))) +  '</NUMEROSEQUENCIAL> '
+        cBody += '                                  <IDPRD>' + Alltrim(Posicione('SB1',1,xFilial('SB1')+SL2->L2_PRODUTO,"B1_XIDRM")) + '</IDPRD> '
+        cBody += '                                  <CODIGOPRD>' + Alltrim(SL2->L2_PRODUTO) + '</CODIGOPRD> '
+        cBody += '                                  <NOMEFANTASIA>' + Alltrim(SL2->L2_DESCRI) + '</NOMEFANTASIA> '
+        cBody += '                                  <CODIGOREDUZIDO/> '
+        cBody += '                                  <NUMNOFABRIC/> '
+        cBody += '                                  <QUANTIDADE>' + Alltrim(AlltoChar(SL2->L2_QUANT, cPicVal)) + '</QUANTIDADE> '
+        cBody += '                                  <PRECOUNITARIO>' + Alltrim(AlltoChar(SL2->L2_VRUNIT, cPicVal)) + '</PRECOUNITARIO> '
+        cBody += '                                  <PRECOTABELA>0,0000</PRECOTABELA> '
+        cBody += '                                  <VALORDESC>0,0000</VALORDESC> '
+        cBody += '                                  <DATAEMISSAO>'+ ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) ) +'</DATAEMISSAO> '
+        cBody += '                                  <CODTB1FAT>002</CODTB1FAT> ' //aQUI
+        cBody += '                                  <CODUND>' + Alltrim(SL2->L2_UM) + '</CODUND> '
+        cBody += '                                  <QUANTIDADEARECEBER>' + Alltrim(AlltoChar(SL2->L2_QUANT, cPicVal)) + '</QUANTIDADEARECEBER> '
+        cBody += '                                  <VALORUNITARIO>' + Alltrim(AlltoChar(SL2->L2_VLRITEM, cPicVal)) + '</VALORUNITARIO> '
+        cBody += '                                  <VALORFINANCEIRO>' + Alltrim(AlltoChar(SL2->L2_VLRITEM, cPicVal)) + '</VALORFINANCEIRO> '
+        cBody += '                                  <CODCCUSTO>' + Alltrim(Posicione("SZ2",1, xFilial("SZ2") + SL2->L2_PRODUTO,"Z2_CCUSTO")) + '</CODCCUSTO> '
+        cBody += '                                  <ALIQORDENACAO>0,0000</ALIQORDENACAO> '
+        cBody += '                                  <QUANTIDADEORIGINAL>' + Alltrim(AlltoChar(SL2->L2_QUANT, cPicVal)) + '</QUANTIDADEORIGINAL> '
+        cBody += '                                  <FLAG>0</FLAG> '
+        cBody += '                                  <FATORCONVUND>0,0000</FATORCONVUND> '
+        cBody += '                                  <VALORBRUTOITEM>' + Alltrim(AlltoChar(SL2->L2_VRUNIT, cPicVal)) + '</VALORBRUTOITEM> '
+        cBody += '                                  <VALORTOTALITEM>'+ Alltrim(AlltoChar(SL2->L2_VLRITEM, cPicVal)) +'</VALORTOTALITEM> '
+        cBody += '                                  <QUANTIDADESEPARADA>0,0000</QUANTIDADESEPARADA> '
+        cBody += '                                  <COMISSAOREPRES>0,0000</COMISSAOREPRES> '
+        cBody += '                                  <VALORESCRITURACAO>0,0000</VALORESCRITURACAO> '
+        cBody += '                                  <VALORFINPEDIDO>0,0000</VALORFINPEDIDO> '
+        cBody += '                                  <VALOROPFRM1>0,0000</VALOROPFRM1> '
+        cBody += '                                  <VALOROPFRM2>0,0000</VALOROPFRM2> '
+        cBody += '                                  <PRECOEDITADO>0</PRECOEDITADO> '
+        cBody += '                                  <QTDEVOLUMEUNITARIO>1</QTDEVOLUMEUNITARIO> '
+        cBody += '                                  <VALORDESCCONDICONALITM>0,0000</VALORDESCCONDICONALITM> '
+        cBody += '                                  <VALORDESPCONDICIONALITM>0,0000</VALORDESPCONDICIONALITM> '
+        cBody += '                                  <CODTBORCAMENTO>1.01.02</CODTBORCAMENTO> '
+        cBody += '                                  <CODCOLTBORCAMENTO>' + cCodEmp + '</CODCOLTBORCAMENTO> '
+        cBody += '                                  <VALORUNTORCAMENTO>0,0000</VALORUNTORCAMENTO> '
+        cBody += '                                  <VALSERVICONFE>0,0000</VALSERVICONFE> '
+        cBody += '                                  <CODLOC>' + cLocEstoq + '</CODLOC> '
+        cBody += '                                  <VALORBEM>0,0000</VALORBEM> '
+        cBody += '                                  <VALORLIQUIDO>' + Alltrim(AlltoChar(SL2->L2_VRUNIT, cPicVal)) + '</VALORLIQUIDO> '
+        cBody += '                                  <RATEIOCCUSTODEPTO>' + Alltrim(AlltoChar(SL2->L2_VRUNIT, cPicVal)) + '</RATEIOCCUSTODEPTO> '
+        cBody += '                                  <VALORBRUTOITEMORIG>' + Alltrim(AlltoChar(SL2->L2_VRUNIT, cPicVal)) + '</VALORBRUTOITEMORIG> '
+        cBody += '                                  <IDTABPRECO>1</IDTABPRECO> '
+        cBody += '                                  <QUANTIDADETOTAL>' + Alltrim(AlltoChar(SL2->L2_QUANT, cPicVal)) + '</QUANTIDADETOTAL> '
+        cBody += '                                  <PRODUTOSUBSTITUTO>0</PRODUTOSUBSTITUTO> '
+        cBody += '                                  <PRECOUNITARIOSELEC>0</PRECOUNITARIOSELEC> '
+        cBody += '                                  <INTEGRAAPLICACAO>T</INTEGRAAPLICACAO> '
+        cBody += '                                  <VALORBASEDEPRECIACAOBEM>0,0000</VALORBASEDEPRECIACAOBEM> '
+        cBody += '                                  <IDMOVSOLICITACAOMNT>0</IDMOVSOLICITACAOMNT> ' 
+        cBody += '                                  <CODCOLIGADA1>' + cCodEmp + '</CODCOLIGADA1> '
+        cBody += '                                  <IDMOVHST>-1</IDMOVHST> '
+        cBody += '                                  <NSEQITMMOV1>' + Alltrim(AlltoChar(Val(SL2->L2_ITEM))) + '</NSEQITMMOV1> '
+        cBody += '                              </TITMMOV> '
+        cBody += '                              <TITMMOVRATCCU> '
+        cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
+        cBody += '                                  <IDMOV>-1</IDMOV> '
+        cBody += '                                  <NSEQITMMOV>' + Alltrim(AlltoChar(Val(SL2->L2_ITEM))) + '</NSEQITMMOV> '
+        cBody += '                                  <CODCCUSTO>' + Alltrim(Posicione("SZ2",1, xFilial("SZ2") + SL2->L2_PRODUTO,"Z2_CCUSTO")) + '</CODCCUSTO> ' //Rateio de Centro de Custo do Item Nao tera
+        cBody += '                                  <NOME>' + Alltrim(Posicione("SZ2",1, xFilial("SZ2") + SL2->L2_PRODUTO,"Z2_DESCCC")) + '</NOME> '
+        cBody += '                                  <VALOR>' + Alltrim(AlltoChar(SL2->L2_VRUNIT, cPicVal)) + '</VALOR> '
+        cBody += '                                  <IDMOVRATCCU>-1</IDMOVRATCCU> '
+        cBody += '                              </TITMMOVRATCCU> '
+        cBody += '                              <TITMMOVCOMPL> '
+        cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
+        cBody += '                                  <IDMOV>-1</IDMOV> '
+        cBody += '                                  <NSEQITMMOV>'+ Alltrim(AlltoChar(Val(SL2->L2_ITEM))) +'</NSEQITMMOV> '
+        cBody += '                              </TITMMOVCOMPL> '     
+        cBody += '                              <TITMMOVFISCAL> '
+        cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
+        cBody += '                                  <IDMOV>-1</IDMOV> '
+        cBody += '                                  <NSEQITMMOV>'+ Alltrim(AlltoChar(Val(SL2->L2_ITEM))) +'</NSEQITMMOV> '
+        cBody += '                                  <QTDECONTRATADA>0,0000</QTDECONTRATADA> '
+        cBody += '                                  <VLRTOTTRIB>0,0000</VLRTOTTRIB> '
+        cBody += '                                  <AQUISICAOPAA>0</AQUISICAOPAA> '
+        cBody += '                                  <POEBTRIBUTAVEL>1</POEBTRIBUTAVEL> '
+        cBody += '                              </TITMMOVFISCAL> '
+    SL2->(DBSkip())
+    EndDo
+
+    cBody += '                              <TMOVCOMPL> '
+    cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
+    cBody += '                                  <IDMOV>-1</IDMOV> '
+    cBody += '                                  <IDPERLET/> '
+    cBody += '                                  <RA/> '
+    cBody += '                                  <MATRIZAPLICADA/> '
+    cBody += '                              </TMOVCOMPL> '
+    cBody += '                              <TMOVTRANSP> '
+    cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
+    cBody += '                                  <IDMOV>-1</IDMOV> '
+    cBody += '                                  <RETIRAMERCADORIA>0</RETIRAMERCADORIA> '
+    cBody += '                                  <TIPOCTE>0</TIPOCTE> '
+    cBody += '                                  <TOMADORTIPO>0</TOMADORTIPO> '
+    cBody += '                                  <TIPOEMITENTEMDFE>0</TIPOEMITENTEMDFE> '
+    cBody += '                                  <LOTACAO>1</LOTACAO> '
+    cBody += '                                  <TIPOTRANSPORTADORMDFE>0</TIPOTRANSPORTADORMDFE> '
+    cBody += '                                  <TIPOBPE>0</TIPOBPE> '
+    cBody += '                              </TMOVTRANSP> '
+    cBody += '                              <TCTRCMOV> '
+    cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
+    cBody += '                                  <IDMOV>-1</IDMOV> '
+    cBody += '                                  <VALORNOTAS>0,0000</VALORNOTAS> '
+    cBody += '                                  <VALORRATEADO>0,0000</VALORRATEADO> '
+    cBody += '                                  <QUANTIDADENOTAS>0</QUANTIDADENOTAS> '
+    cBody += '                                  <QUANTIDADERATEADAS>0</QUANTIDADERATEADAS> '
+    cBody += '                              </TCTRCMOV> '
+    cBody += '                          </MovMovimento>]]> '
+    cBody += '          </tot:XML> '
+    cBody += '          <tot:Contexto>CODCOLIGADA=' + cCodEmp + ';CODSISTEMA=T</tot:Contexto> '
+    cBody += '     </tot:SaveRecord> '
+    cBody += '  </soapenv:Body> '
+    cBody += ' </soapenv:Envelope> '
+
+    oWsdl := TWsdlManager():New()
+    oWsdl:nTimeout         := 120
+    oWsdl:lSSLInsecure     := .T.
+    oWsdl:lProcResp        := .T.
+    oWsdl:bNoCheckPeerCert := .T.
+    oWSDL:lUseNSPrefix     := .T.
+    oWsdl:lVerbose         := .T.
+    
+    If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("SaveRecord")
+        ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+        u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Venda Futura / Orçamento - "+SL1->L1_NUM,"2","ERRO")
+    Else
+
+        oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
+
+        If !oWsdl:SendSoapMsg( cBody )
+            ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+            u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Venda Futura / Orçamento - "+SL1->L1_NUM,"2","ERRO")
+            Return
+        Else
+            cResult := oWsdl:GetSoapResponse()
+            cResult := StrTran(cResult, "&lt;", "<")
+            cResult := StrTran(cResult, "&gt;&#xD;", ">")
+            cResult := StrTran(cResult, "&gt;", ">")
+            oXml := TXmlManager():New()
+
+            If !oXML:Parse( cResult )
+                ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
+                u_fnGrvLog(cEndPoint,cBody,"",oXML:Error(),"Venda Futura / Orçamento - "+SL1->L1_NUM,"2","ERRO")
+            Else
+                oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
+                oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
+                
+                IF Len(oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult')) < 15 
+                    cIDMovRet  := SubStr(oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult'),;
+                                         At(";",(oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult')))+1)
+                Else
+                    cResult := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult')
+                EndIF
+                
+                If !Empty(cIDMovRet) .And. Len(cIDMovRet) < 10
+                    RecLock("SL1",.F.)
+                        SL1->L1_XIDMOV  := cIDMovRet
+                        SL1->L1_XINT_RM := "S"
+                    SL1->(MSUnlock())
+                    u_fnGrvLog(cEndPoint,cBody,cResult,"","Venda Futura / Orçamento - "+SL1->L1_NUM,"6","ENVIO")
+                Else
+                    
+                    If !Empty(cIDMovRet)
+                        RecLock("SL1",.F.)
+                            SL1->L1_XIDMOV  := cIDMovRet
+                            SL1->L1_XINT_RM := "S"
+                        SL1->(MSUnlock())
+                        u_fEnvMail("RM1",cTitulo,cResult)
+                    EndIF 
+                    ApMsgAlert(cResult,"Erro Integracao TOTVS Corpore RM")
+                    u_fnGrvLog(cEndPoint,cBody,"",cResult,"Venda Futura / Orçamento - "+SL1->L1_NUM,"2","ERRO")
+                EndIF 
+            Endif
+
+        EndIf
+    EndIF 
+
+    FWRestArea(aAreaSB1)
+    FWRestArea(aAreaSL2)
+    FWRestArea(aAreaSL1)    
+    FWRestArea(aArea)  
+    
+Return
+//-----------------------------------------------------------------------------
 /*/{Protheus.doc} fEnvNFeDev
 Realiza o envio da Nota Fiscal de Entrada para o Copore RM
 /*/
@@ -3410,28 +3800,54 @@ User Function fInutNFCe()
 
     Local oWsdl as Object
     Local oXml as Object 
-    Local oWebServ as Object
-    Local cPath     := "/wsProcess/MEX?wsdl"
-    Local cBody     := ""
-    Local cResult   := ""
-    Local aRetAux   := {}
-    Local aRet      := {}
-    Local cIdEnt    := RetIdEnti()
-    Local cURLTss   := SuperGetMV("MV_NFCEURL",.F.,"")
-    Local cAmbNFCe  := SuperGetMV("MV_AMBNFCE",.F.,"2")
+    Local cPath      := "/wsDataServer/MEX?wsdl"
+    Local cBody      := ""
+    Local cResult    := ""
+    Local aInfMonNFe := {}
+    Local cURLTss    := SuperGetMV("MV_NFCEURL",.F.,"")
+    Local cIdEnt     := LjTSSIDENT( SLX->LX_MODDOC )
+    Local cNFCeID    := SLX->LX_SERIE + SLX->LX_CUPOM
+    Local lRetWS     := .F.
+    Local cIDMovRet  := ""
+    Local cXMLInut   := ""
+    Local cProtInut  := ""
+    Local cChvInut   := ""
+    Local cAmbNFCe   := ""
+    Local cChvNFe    := ""
+    Local cEndPoint  := "FisNFeInutilizarData"
+    Local cTitulo    := "Erro de Integração da Inutilização / Cupom: "+AllTrim(SLX->LX_CUPOM) + " - Serie: "+ AllTrim(SLX->LX_SERIE) + " com o TOTVS Corpore RM"
 
-    oWebServ:= WSNFeSBRA():New()
-    oWebServ:cUSERTOKEN := "TOTVS"
-    oWebServ:cID_ENT := cIdEnt
-    oWebServ:oWSNFEID := NFESBRA_NFES2():New()
-    oWebServ:oWSNFEID:oWSNotas := NFESBRA_ARRAYOFNFESID2():New()
-    aAdd(oWebServ:oWSNFEID:oWSNotas:oWSNFESID2,NFESBRA_NFESID2():New())
-    aTail(oWebServ:oWSNFEID:oWSNotas:oWSNFESID2):cID := (SLX->LX_SERIE+SLX->LX_CUPOM)
-    oWebServ:nDIASPARAEXCLUSAO := 0
-    oWebServ:_URL := AllTrim(cURLTss)+"/NFeSBRA.apw"
+    Private oWS := Nil
 
-    If !oWebServ:RetornaNotas()
+    cIdEnt := LjTSSIDENT( SLX->LX_MODDOC )
+    cNFCeID := SLX->LX_SERIE + SLX->LX_CUPOM
 
+    oWS:= WSNFeSBRA():New()
+    oWS:cUSERTOKEN := "TOTVS"
+    oWS:cID_ENT := cIdEnt
+    oWS:oWSNFEID := NFESBRA_NFES2():New()
+    oWS:oWSNFEID:oWSNotas := NFESBRA_ARRAYOFNFESID2():New()
+    aadd(oWS:oWSNFEID:oWSNotas:oWSNFESID2,NFESBRA_NFESID2():New())
+    Atail(oWS:oWSNFEID:oWSNotas:oWSNFESID2):cID := cNFCeID
+    oWS:nDIASPARAEXCLUSAO := 0
+    oWS:_URL := AllTrim(cURLTss)+"/NFeSBRA.apw"
+
+    lRetWS := oWS:RETORNANOTAS()
+    
+    If ValType(lRetWS) <> "L" .OR. !lRetWS
+        
+        FWAlertWarning(IIf(Empty(GetWscError(3)),GetWscError(1),GetWscError(3)),'Erro ao recuperar os dados da Inutilizacao')
+    
+    ElseIF oWs:oWsRetornaNotasResult:OWSNOTAS:oWSNFES3[1]:oWSNFECANCELADA <> Nil
+        cXMLInut  := oWs:oWsRetornaNotasResult:OWSNOTAS:oWSNFES3[1]:oWSNFECANCELADA:cXML
+        cProtInut := oWs:oWsRetornaNotasResult:OWSNOTAS:oWSNFES3[1]:oWSNFECANCELADA:cPROTOCOLO
+
+        aInfMonNFe := ProcMonitorDoc(cIdEnt , cURLTss , {SLX->LX_SERIE, SLX->LX_CUPOM, SLX->LX_CUPOM} , 1 , SLX->LX_MODDOC , .F., @cChvNFe)
+
+        IF Len(aInfMonNFe) > 0
+            cAmbNFCe := cValToChar(aInfMonNFe[1][7])
+            cChvNFe  := Substr(aInfMonNFe[1][17][02], At('Id="NFe',aInfMonNFe[1][17][02])+7, 44 )
+        EndIF  
     EndIF 
 
     cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
@@ -3447,19 +3863,19 @@ User Function fInutNFCe()
     cBody += ' 						<SERIE>' + AllTrim(SLX->LX_SERIE) + '</SERIE> '
     cBody += ' 						<NUMDOC>' + AllTrim(SLX->LX_CUPOM) + '</NUMDOC> '
     cBody += ' 						<DATA>' + FWTimeStamp(3, SLX->LX_DTMOVTO , SLX->LX_HORA) + '</DATA> '
-    cBody += ' 						<MODELO>65</MODELO> '
+    cBody += ' 						<MODELO>' + AllTrim(SLX->LX_MODDOC) + '</MODELO> '
     cBody += ' 						<AMBIENTE>' + cAmbNFCe + '</AMBIENTE> '
-    cBody += ' 						<OBSERVACAO>O documento numero: ' + AllTrim(SLX->LX_CUPOM) + ' não será utilizado pelo ERP</OBSERVACAO> '
-    cBody += ' 						<PROTOCOLO>126170060391773</PROTOCOLO> '
-    cBody += ' 						<XMLINUT>CONTEUDO XML</XMLINUT> '
+    cBody += ' 						<OBSERVACAO>O documento numero: ' + AllTrim(SLX->LX_CUPOM) + ' nao sera utilizado pelo ERP</OBSERVACAO> '
+    cBody += ' 						<PROTOCOLO>' + cProtInut + '</PROTOCOLO> '
+    cBody += ' 						<XMLINUT>' + cXMLInut + '</XMLINUT> '
     cBody += ' 						<STATUS>N</STATUS> '
     cBody += ' 						<CODUSUARIO>' + cUser + '</CODUSUARIO> '
-    cBody += ' 						<MSGSEFAZ>Inutilização de número homologado</MSGSEFAZ> '
-    cBody += ' 						<CHAVEACESSONFE>26171113095725000586550010000002891979713556</CHAVEACESSONFE> '
+    cBody += ' 						<MSGSEFAZ>Cancelamento de NFC-e por emissao indevida, sem transmissao a SEFAZ</MSGSEFAZ> '
+    cBody += ' 						<CHAVEACESSONFE>' + cChvInut + '</CHAVEACESSONFE> '
     cBody += ' 					  </DNFEINUT> '
     cBody += ' 					</FisNFeInutilizar>]]> '
     cBody += ' 			</tot:XML> '
-    cBody += ' 			<tot:Contexto>CODCOLIGADA=20;CODSISTEMA=T</tot:Contexto> '
+    cBody += ' 			<tot:Contexto>CODCOLIGADA=' + cCodEmp + ';CODSISTEMA=T</tot:Contexto> '
     cBody += ' 		</tot:SaveRecord> '
     cBody += ' 	</soapenv:Body> '
     cBody += ' </soapenv:Envelope> '
@@ -3472,15 +3888,16 @@ User Function fInutNFCe()
     oWSDL:lUseNSPrefix     := .T.
     oWsdl:lVerbose         := .T.
     
-    If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("RealizarConsultaSQL")
+    If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("SaveRecord")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
+        u_fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"Erro - Inutilizacao do Cupom: "+AllTrim(SLX->LX_CUPOM) + " - Serie: "+ AllTrim(SLX->LX_SERIE),"2","ERRO")
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            u_fnGrvLog('wsConsultaBaixa',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta Baixa ID Mov: "+ pIDMov,"2","ERRO")
+            u_fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"Erro - Inutilizacao do Cupom: "+AllTrim(SLX->LX_CUPOM) + " - Serie: "+ AllTrim(SLX->LX_SERIE),"2","ERRO")
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -3491,25 +3908,43 @@ User Function fInutNFCe()
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                u_fnGrvLog('wsConsultaBaixa',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Consulta Baixa ID Mov: "+ pIDMov,"2","ERRO")
-            else
+                u_fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"Erro - Inutilizacao do Cupom: "+AllTrim(SLX->LX_CUPOM) + " - Serie: "+ AllTrim(SLX->LX_SERIE),"2","ERRO")
+            Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
                 
-                aRetAux := {}
-                aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:IDMOV'))
-                aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:IDLAN'))
-                aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:IDBAIXA'))
-                aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado/ns1:NUMEROMOV'))
-                aAdd(aRet,aRetAux)
+                IF Len(oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult')) < 15 
+                    cIDMovRet  := SubStr(oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult'),;
+                                        At(";",(oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult')))+1)
+                Else
+                    cResult := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult')
+                EndIF 
+                
+                If !Empty(cIDMovRet)
+                    RecLock("SLX",.F.)
+                        SLX->LX_XIDMOV := cIDMovRet
+                        SLX->LX_XINT_RM := "S"
+                    SLX->(MSUnlock())
+                    u_fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),"Inutilizacao do Cupom: "+AllTrim(SLX->LX_CUPOM) + " - Serie: "+ AllTrim(SLX->LX_SERIE),"6","ENVIO")
+                Else
+                    
+                    If !Empty(cIDMovRet)
+                        RecLock("SF1",.F.)
+                            SF1->F1_XIDMOV := cIDMovRet
+                            SF1->F1_XINT_RM := "S"
+                        SF1->(MSUnlock())
+                        u_fEnvMail("RM1",cTitulo,cResult)
+                    EndIF
 
-                u_fnGrvLog('wsConsultaBaixa',cBody,cResult,"","Consulta Baixa ID Mov: "+ pIDMov,"1","CONSULTA")
+                    ApMsgAlert(cResult,"Erro Integracao TOTVS Corpore RM")
+                    u_fnGrvLog(cEndPoint,cBody,"",cResult,"Erro - Inutilizacao do Cupom: "+AllTrim(SLX->LX_CUPOM) + " - Serie: "+ AllTrim(SLX->LX_SERIE),"2","ERRO")
+                EndIF 
             Endif
 
         EndIf
     EndIF 
     
-Return aRet
+Return
 
 //-----------------------------------------------------------------------------
 /*/{Protheus.doc} wsNumeroMOV

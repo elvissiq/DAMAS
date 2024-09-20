@@ -32,15 +32,32 @@ Retorno:
 Nenhum
 --------------------------------------------------------------------------*/
 User Function LJ7002()
-  Local aPEArea := FWGetArea()
-  Local nOpcao  := ParamIxB[01]
-  Local nGrvBat := ParamIxB[03]
+  Local aPEArea  := FWGetArea()
+  Local aAreaSL1 := SL1->(FWGetArea())
+  Local nOpcao   := ParamIxB[01]
+  //Local nGrvBat := ParamIxB[03]
 
-  If nOpcao <> 2
-    Return
-  ElseIF nGrvBat == 2 
-    U_DSOAPF01("MovMovimentoTBCData")
-  EndIf
+  Do Case
+    Case nOpcao == 1
+      Return
+    Case nOpcao == 2
+      IF !IsBlind()
+        FWAlertInfo('Vai enviar o orcamento ' + SL1->L1_NUM + ', ao RM.', 'Integracao de Venda com o TOTVS Corpore RM')
+      EndIF
+      IF SL1->L1_SITUA == 'OK'
+        u_DSOAPF01("MovMovimentoTBCData")
+      ElseIF SL1->L1_SITUA == 'FR'
+        u_DSOAPF01("MovMovimentoPedido")
+      EndIF 
+    Case nOpcao == 3
+      IF SL1->(MsSeek(xFilial("SL1") +  SL1->L1_ORCRES))
+        IF !IsBlind()
+          FWAlertInfo('Vai enviar o orcamento ' + SL1->L1_NUM + ', ao RM.', 'Integracao de Pedido de Venda com o TOTVS Corpore RM')
+        EndIF
+        u_DSOAPF01("MovMovimentoPedido")
+      EndIF
+  End 
   
+  FWRestArea(aAreaSL1)
   FWRestArea(aPEArea)
 Return
