@@ -411,7 +411,7 @@ Static Function fwsCliForR()
     cBody += '          <tot:codSentenca>'+cEndPoint+'</tot:codSentenca> '
     cBody += '          <tot:codColigada>0</tot:codColigada> '
     cBody += '          <tot:codSistema>T</tot:codSistema> '
-    cBody += '          <tot:parameters>CODCOLIGADA_N=0;ATIVO_N=1;CODCFO_S=TODOS;CGCCFO_S=TODOS;NOMEFANTASIA_S=TODOS; PAGREC_N=1;CRIACAO_N='+cDiasInc+';ALTERACAO_N='+cDiasAlt+'</tot:parameters> '
+    cBody += '          <tot:parameters>CODCOLIGADA_N=0;ATIVO_N=1;CODCFO_S=TODOS;CGCCFO_S=TODOS;NOMEFANTASIA_S=TODOS;PAGREC_N=1;CRIACAO_N='+cDiasInc+';ALTERACAO_N='+cDiasAlt+'</tot:parameters> '
     cBody += '      </tot:RealizarConsultaSQL> '
     cBody += '  </soapenv:Body> '
     cBody += ' </soapenv:Envelope> '
@@ -1961,7 +1961,7 @@ Static Function fEnvNFeVend()
     //Credito de Devolução 
     IF !Empty(SL1->L1_CREDITO)
         
-        SAE->(MSSeek(xFilial("SAE") + '30' ))
+        SAE->(MSSeek(xFilial("SAE") + '21' ))
 
         DBSelectArea("SZ4")
         SZ4->(MsSeek(xFilial("SZ4") + SAE->AE_COD ))
@@ -2130,7 +2130,7 @@ Static Function fEnvNFeVend()
         cBody += '                                  <NSEQITMMOV>'+ Alltrim(AlltoChar(Val(SL2->L2_ITEM))) +'</NSEQITMMOV> '
         cBody += '                                  <CODTRB>ICMS</CODTRB> '
         cBody += '                                  <BASEDECALCULO>' + Alltrim(AlltoChar(SL2->L2_BASEICM, cPicVal)) + '</BASEDECALCULO> '
-        cBody += '                                  <ALIQUOTA>' + Alltrim(AlltoChar(SL2->L2_PICM, cPicVal)) + '</ALIQUOTA> '
+        cBody += '                                  <ALIQUOTA>' + Alltrim(AlltoChar(SL2->L2_SITTRIB, cPicVal)) + '</ALIQUOTA> '
         cBody += '                                  <VALOR>' + Alltrim(AlltoChar(SL2->L2_VALICM, cPicVal)) + '</VALOR> '
         cBody += '                                  <FATORREDUCAO>0,0000</FATORREDUCAO> '
         cBody += '                                  <FATORSUBSTTRIB>0,0000</FATORSUBSTTRIB> '
@@ -2421,7 +2421,91 @@ Static Function fEnvPedVend()
     cBody += '                                  <VALOR>' + Alltrim(AlltoChar(SL1->L1_VLRLIQ, cPicVal)) + '</VALOR> '
     cBody += '                                  <IDMOVRATCCU>-1</IDMOVRATCCU> '
     cBody += '                              </TMOVRATCCU> '
+    
+    //Formas de Pagamento do Cupom Fiscal
+    DBSelectArea("SL4")
+    DBSelectArea("SAE")
 
+    //Credito de Devolução 
+    IF !Empty(SL1->L1_CREDITO)
+        
+        SAE->(MSSeek(xFilial("SAE") + '21' ))
+
+        DBSelectArea("SZ4")
+        SZ4->(MsSeek(xFilial("SZ4") + SAE->AE_COD ))
+        cCodCaixa := SZ4->Z4_CODCXA
+        cCodColCX := SZ4->Z4_CODCOL
+
+        cBody += '                              <TMOVPAGTO> '
+        cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
+        cBody += '                                  <IDSEQPAGTO>-1</IDSEQPAGTO> '
+        cBody += '                                  <IDMOV>-1</IDMOV> '
+        cBody += '                                  <CODCOLCFODEFAULT>0</CODCOLCFODEFAULT> '
+        cBody += '                                  <CODCFODEFAULT>023133</CODCFODEFAULT> '
+        cBody += '                                  <TIPOFORMAPAGTO>'+ Alltrim(SAE->AE_XTPFORM) +'</TIPOFORMAPAGTO> '
+        cBody += '                                  <CODCOLCFO>0</CODCOLCFO> '
+        cBody += '                                  <TAXAADM>'+ Alltrim(AlltoChar(SAE->AE_TAXA, cPicVal)) +'</TAXAADM> '
+        cBody += '                                  <CODCXA>'+ Alltrim(cCodCaixa) +'</CODCXA> '
+        cBody += '                                  <CODCOLCXA>' + Alltrim(cCodColCX) + '</CODCOLCXA> '
+        cBody += '                                  <IDLAN>-1</IDLAN> '
+        cBody += '                                  <NOMEREDE/> '
+        cBody += '                                  <NSU/> '
+        cBody += '                                  <QTDEPARCELAS>0</QTDEPARCELAS> '
+        cBody += '                                  <IDFORMAPAGTO>'+ Alltrim(SAE->AE_XIDFORM) +'</IDFORMAPAGTO> '
+        cBody += '                                  <DATAVENCIMENTO>'+ ( FWTimeStamp(3, SL1->L1_EMISNF , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) ) +'</DATAVENCIMENTO> '
+        cBody += '                                  <TIPOPAGAMENTO>1</TIPOPAGAMENTO> '
+        cBody += '                                  <VALOR>'+ Alltrim(AlltoChar(SL1->L1_CREDITO, cPicVal)) +'</VALOR> '
+        cBody += '                                  <DEBITOCREDITO>C</DEBITOCREDITO> '
+        cBody += '                              </TMOVPAGTO> '
+    EndIF 
+    
+    //Formas de Pagamento na SL4 
+    IF SL4->(MSSeek(SL1->L1_FILIAL + SL1->L1_NUM))
+        While SL4->(!Eof()) .AND. ( SL4->L4_FILIAL  == SL1->L1_FILIAL );
+                            .AND. ( SL4->L4_NUM     == SL1->L1_NUM )
+            
+            cCodAdm := SubStr(Alltrim(SL4->L4_ADMINIS),1,3)
+            If Empty(cCodAdm)
+                Do Case
+                    Case Alltrim(SL4->L4_FORMA) == "R$"
+                        cCodAdm := "01"
+                    Case Alltrim(SL4->L4_FORMA) == "CH"
+                        cCodAdm := "02"
+                End Do 
+            EndIF 
+
+            SAE->(MSSeek(xFilial("SAE") + cCodAdm ))
+
+            DBSelectArea("SZ4")
+            SZ4->(MsSeek(xFilial("SZ4") + SAE->AE_COD ))
+            cCodCaixa := SZ4->Z4_CODCXA
+            cCodColCX := SZ4->Z4_CODCOL
+
+            cBody += '                              <TMOVPAGTO> '
+            cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
+            cBody += '                                  <IDSEQPAGTO>-1</IDSEQPAGTO> '
+            cBody += '                                  <IDMOV>-1</IDMOV> '
+            cBody += '                                  <CODCOLCFODEFAULT>0</CODCOLCFODEFAULT> '
+            cBody += '                                  <CODCFODEFAULT>023133</CODCFODEFAULT> '
+            cBody += '                                  <TIPOFORMAPAGTO>'+ Alltrim(SAE->AE_XTPFORM) +'</TIPOFORMAPAGTO> '
+            cBody += '                                  <CODCOLCFO>0</CODCOLCFO> '
+            cBody += '                                  <TAXAADM>'+ Alltrim(AlltoChar(SAE->AE_TAXA, cPicVal)) +'</TAXAADM> '
+            cBody += '                                  <CODCXA>'+ Alltrim(cCodCaixa) +'</CODCXA> '
+            cBody += '                                  <CODCOLCXA>' + Alltrim(cCodColCX) + '</CODCOLCXA> '
+            cBody += '                                  <IDLAN>-1</IDLAN> '
+            cBody += '                                  <NOMEREDE/> '
+            cBody += '                                  <NSU>'+ AllTrim(SL4->L4_NSUTEF) +'</NSU> '
+            cBody += '                                  <QTDEPARCELAS>0</QTDEPARCELAS> '
+            cBody += '                                  <IDFORMAPAGTO>'+ Alltrim(SAE->AE_XIDFORM) +'</IDFORMAPAGTO> '
+            cBody += '                                  <DATAVENCIMENTO>'+ ( FWTimeStamp(3, SL4->L4_DATA , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) ) +'</DATAVENCIMENTO> '
+            cBody += '                                  <TIPOPAGAMENTO>1</TIPOPAGAMENTO> '
+            cBody += '                                  <VALOR>'+ Alltrim(AlltoChar(SL4->L4_VALOR, cPicVal)) +'</VALOR> '
+            cBody += '                                  <DEBITOCREDITO>C</DEBITOCREDITO> '
+            cBody += '                              </TMOVPAGTO> '
+        SL4->(DBSkip())
+        End
+    EndIF 
+    
     //Itens do Cupom Fiscal
     While !SL2->(Eof()) .AND. ( SL2->L2_FILIAL  == SL1->L1_FILIAL ); 
                         .AND. ( SL2->L2_NUM     == SL1->L1_NUM )
@@ -2734,7 +2818,7 @@ Static Function fEnvNFeDev()
     cBody += '                                  <USARATEIOVALORFIN>1</USARATEIOVALORFIN> '
     cBody += '                                  <CODCOLCFOAUX>0</CODCOLCFOAUX> '
     cBody += '                                  <VALORRATEIOLAN>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</VALORRATEIOLAN> '
-    cBody += '                                  <HISTORICOCURTO>Integracao Webservice TOTVS Protheus</HISTORICOCURTO> '
+    cBody += '                                  <HISTORICOCURTO>Nota fiscal de saida referenciada Nº: ' + AllTrim(SD1->D1_NFORI) + ' Serie: ' + AllTrim(SD1->D1_SERIORI) + '</HISTORICOCURTO> '
     cBody += '                                  <RATEIOCCUSTODEPTO>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</RATEIOCCUSTODEPTO> '
     cBody += '                                  <VALORBRUTOORIG>' + AllTrim(AlltoChar(SF1->F1_VALBRUT, cPicVal)) + '</VALORBRUTOORIG> '
     cBody += '                                  <VALORLIQUIDOORIG>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</VALORLIQUIDOORIG> '
@@ -2779,14 +2863,14 @@ Static Function fEnvNFeDev()
     cBody += '                              <TMOVHISTORICO> '
     cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '
     cBody += '                                  <IDMOV>-1</IDMOV> '
-    cBody += '                                  <HISTORICOLONGO>Integracao Webservice TOTVS Protheus</HISTORICOLONGO> '
-    cBody += '                                  <HISTORICOCURTO>Integracao Webservice TOTVS Protheus</HISTORICOCURTO> '
+    cBody += '                                  <HISTORICOLONGO>Nota fiscal de saida referenciada Nº: ' + AllTrim(SD1->D1_NFORI) + ' Serie: ' + AllTrim(SD1->D1_SERIORI) + '</HISTORICOLONGO> '
+    cBody += '                                  <HISTORICOCURTO>Nota fiscal de saida referenciada Nº: ' + AllTrim(SD1->D1_NFORI) + ' Serie: ' + AllTrim(SD1->D1_SERIORI) + '</HISTORICOCURTO> '
     cBody += '                              </TMOVHISTORICO> '
     
     DBSelectArea("SAE")
 
     //Credito de Devolução     
-    SAE->(MSSeek(xFilial("SAE") + '30' ))
+    SAE->(MSSeek(xFilial("SAE") + '21' ))
 
     DBSelectArea("SZ4")
     SZ4->(MsSeek(xFilial("SZ4") + SAE->AE_COD ))
