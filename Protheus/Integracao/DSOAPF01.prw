@@ -1369,17 +1369,20 @@ Static Function fwsFormaPagamento()
                     aAutoItens := {}
 
                     IF nOpc == 3
-                        aAdd(aAutoCab, {"AE_COD", aRegXML[03][03], Nil})                 // Codigo
+                        aAdd(aAutoCab, {"AE_COD"    , aRegXML[03][03], Nil           })  // Codigo
                         aAdd(aAutoCab, {"AE_DESC"   , Alltrim(aRegXML[04][03]), Nil  })  // Descricao da Adm Financeira
                         aAdd(aAutoCab, {"AE_DIAS"   , nViraEm, Nil                   })  // Dia de a virar o cartao
-                        aAdd(aAutoCab, {"AE_TAXA"   , Val(aRegXML[08][03]), Nil      })  // Taxa Cobranca
+                        aAdd(aAutoCab, {"AE_TAXA"   , Val(aRegXML[14][03]), Nil      })  // Taxa Cobranca
                         aAdd(aAutoCab, {"AE_TIPO"   , cTipoAdm, Nil                  })  // Tipo da Administradora
                         aAdd(aAutoCab, {"AE_FINPRO" , "N", Nil                       })  // Financiamento próprio
                         aAdd(aAutoCab, {"AE_PARCDE" , 1, Nil                         })  // Qtd. minima parcelas
                         aAdd(aAutoCab, {"AE_PARCATE", nParcAte, Nil                  })  // Qtd. máxima parcelas
                         aAdd(aAutoCab, {"AE_XTPFORM", Alltrim(aRegXML[06][03]), Nil  })  // Tipo da Forma de Pagamento
-                        aAdd(aAutoCab, {"AE_XCODCX" , Alltrim(aRegXML[14][03]), Nil  })  // Codigo Caixa RM 
+                        aAdd(aAutoCab, {"AE_XCODCX" , Alltrim(aRegXML[20][03]), Nil  })  // Codigo Caixa RM 
                         aAdd(aAutoCab, {"AE_XIDFORM", Alltrim(aRegXML[02][03]), Nil  })  // ID da Forma de Pag. RM
+                        aAdd(aAutoCab, {"AE_XCODBAN", Alltrim(aRegXML[07][03]), Nil  })  // Codigo da bandeira no RM 
+                        aAdd(aAutoCab, {"AE_XMEIOPG", Alltrim(aRegXML[09][03]), Nil  })  // Cod. do meio de Pag. RM
+                        aAdd(aAutoCab, {"AE_XMODELO", Alltrim(aRegXML[02][03]), Nil  })  // Codigo do Modelo do RM   
 
                         IF FWMVCRotAuto(oModel, "SAE", nOpc , {{"SAEMASTER", aAutoCab}, {"MENDETAIL", aAutoItens}},,.T.)
                             lOk := .T.
@@ -1390,14 +1393,17 @@ Static Function fwsFormaPagamento()
                         RecLock("SAE",.F.)
                             SAE->AE_DESC    := Alltrim(aRegXML[04][03])  // Descricao da Adm Financeira
                             SAE->AE_DIAS    := nViraEm                   // Dia de a virar o cartao
-                            SAE->AE_TAXA    := Val(aRegXML[08][03])      // Taxa Cobranca
+                            SAE->AE_TAXA    := Val(aRegXML[14][03])      // Taxa Cobranca
                             SAE->AE_TIPO    := cTipoAdm                  // Tipo da Administradora
                             SAE->AE_FINPRO  := "N"                       // Financiamento próprio
                             SAE->AE_PARCDE  := 1                         // Qtd. minima parcelas
                             SAE->AE_PARCATE := nParcAte                  // Qtd. máxima parcelas
                             SAE->AE_XTPFORM := Alltrim(aRegXML[06][03])  // Tipo da Forma de Pagamento
-                            SAE->AE_XCODCX  := Alltrim(aRegXML[14][03])  // Codigo Caixa RM 
+                            SAE->AE_XCODCX  := Alltrim(aRegXML[20][03])  // Codigo Caixa RM 
                             SAE->AE_XIDFORM := Alltrim(aRegXML[02][03])  // ID da Forma de Pag. RM
+                            SAE->AE_XCODBAN := Alltrim(aRegXML[07][03])  // Codigo da bandeira no RM 
+                            SAE->AE_XMEIOPG := Alltrim(aRegXML[09][03])  // Cod. do meio de Pag. RM
+                            SAE->AE_XMODELO := Alltrim(aRegXML[02][03])  // Codigo do Modelo do RM 
                         SAE->(MsUnlock())
                         lOk := .T.
                     EndIF
@@ -2033,6 +2039,7 @@ Static Function fEnvNFeVend()
             cBody += '                                  <TIPOPAGAMENTO>1</TIPOPAGAMENTO> '
             cBody += '                                  <VALOR>'+ Alltrim(AlltoChar(SL4->L4_VALOR, cPicVal)) +'</VALOR> '
             cBody += '                                  <DEBITOCREDITO>C</DEBITOCREDITO> '
+            cBody += '                                  <CAMPOLIVRE>'+ cValToChar(SL4->(RecNo())) +'</CAMPOLIVRE> '
             cBody += '                              </TMOVPAGTO> '
         SL4->(DBSkip())
         End
@@ -2502,7 +2509,7 @@ Static Function fEnvPedVend()
             cBody += '                                  <TIPOPAGAMENTO>1</TIPOPAGAMENTO> '
             cBody += '                                  <VALOR>'+ Alltrim(AlltoChar(SL4->L4_VALOR, cPicVal)) +'</VALOR> '
             cBody += '                                  <DEBITOCREDITO>C</DEBITOCREDITO> '
-            cBody += '                                  <CAMPOLIVRE>'+ SL4->(RecNo()) +'</CAMPOLIVRE> '
+            cBody += '                                  <CAMPOLIVRE>'+ cValToChar(SL4->(RecNo())) +'</CAMPOLIVRE> '
             cBody += '                              </TMOVPAGTO> '
         SL4->(DBSkip())
         End
@@ -3372,6 +3379,7 @@ User Function fCanMovim(pIDMov,pNumMov)
     Local cPath     := "/wsProcess/MEX?wsdl"
     Local cBody     := ""
     Local cResult   := ""
+    Local lRetCanc  := .F.
     Local nY
 
     Default lRet := .F.
@@ -3385,7 +3393,7 @@ User Function fCanMovim(pIDMov,pNumMov)
     Private cIDInteg  := ""
     Private cIDProce  := ""
 
-    aBaixa := u_fnConsultBX(AllTrim(cIDMOV))
+    aBaixa := u_fnConsultBX(AllTrim(pIDMov))
 
     IF Len(aBaixa) <= 0
         Return
@@ -3402,11 +3410,14 @@ User Function fCanMovim(pIDMov,pNumMov)
             cIDInteg  := aBaixa[nY][15]
             cIDProce  := aBaixa[nY][16]
 
-            fnCancCartPIX()
-            fnCancBOL()
+            lRetCanc := .F.
+            lRetCanc := fnCancCartPIX()
+            If lRetCanc
+                fnCancBOL()
+            EndIF
 
         EndIF 
-    Next 
+    Next
 
     cBody := '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/">'
     cBody += '<soapenv:Header/>'
@@ -3690,6 +3701,7 @@ User Function fnConsultBX(pIDMov)
                     aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']'+'/ns1:RECNO'))
                     aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']'+'/ns1:IDINTEGRACAO'))
                     aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']'+'/ns1:PROCESSAMENTO'))
+                    aAdd(aRetAux, oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:RealizarConsultaSQLResponse/ns1:RealizarConsultaSQLResult/ns1:NewDataSet/ns1:Resultado'+'[' + cValToChar(nY) + ']'+'/ns1:IDCONVENIO'))
                     aAdd(aRet,aRetAux)
                 Next
 
@@ -3707,7 +3719,7 @@ Realiza baixa financeira no RM
 /*/
 //-----------------------------------------------------------------------------
 
-User Function fBaixaFin(cIDMOV)
+User Function fBaixaFin(pIDMOV)
     Local oWsdl as Object
     Local oXml as Object 
     Local cPath     := "/wsProcess/MEX?wsdl"
@@ -3718,7 +3730,7 @@ User Function fBaixaFin(cIDMOV)
     Local nY 
 
     Default lRet    := .F.
-    Default cIDMOV  := "" 
+    Default pIDMOV  := "" 
 
     Private aBaixa    := {}
     Private _cAlias   := GetNextAlias()
@@ -3735,8 +3747,10 @@ User Function fBaixaFin(cIDMOV)
     Private cNumDocRM := ""
     Private cHist     := ""
     Private cIDRecno  := ""
+    Private cIDConv   := ""
+    Private nParcela  := 0
 
-    aBaixa := u_fnConsultBX(AllTrim(cIDMOV))
+    aBaixa := u_fnConsultBX(AllTrim(pIDMOV))
 
     IF Len(aBaixa) <= 0
         Return
@@ -3748,7 +3762,7 @@ User Function fBaixaFin(cIDMOV)
 
             cIDLan      := aBaixa[nY][2]
             dDataVenc   := CToD(SubStr(aBaixa[nY][5],9,2)+"/"+SubStr(aBaixa[nY][5],6,2)+"/"+SubStr(aBaixa[nY][5],1,4))
-            cHoraVenc   := SubStr(aBaixa[nY][5],12)
+            cHoraVenc   := Time()
             cCodColCX   := aBaixa[nY][6]
             cCodCX      := aBaixa[nY][7]
             cIDFormPg   := aBaixa[nY][8]
@@ -3758,6 +3772,7 @@ User Function fBaixaFin(cIDMOV)
             cCodCliFo   := aBaixa[nY][12]
             cNumDocRM   := aBaixa[nY][13]
             cIDRecno    := aBaixa[nY][14]
+            cIDConv     := aBaixa[nY][17]
 
             If cIDBoleto == "0"
                 cQry := " SELECT * FROM  " + RetSQLName('SAE')
@@ -3950,7 +3965,7 @@ User Function fBaixaFin(cIDMOV)
     Next 
 
     aBaixa :={}
-    aBaixa := u_fnConsultBX(AllTrim(cIDMOV))
+    aBaixa := u_fnConsultBX(AllTrim(pIDMOV))
 
     IF Len(aBaixa) <= 0
         Return
@@ -3962,7 +3977,7 @@ User Function fBaixaFin(cIDMOV)
 
             cIDLan    := aBaixa[nY][2]
             dDataVenc := CToD(SubStr(aBaixa[nY][5],9,2)+"/"+SubStr(aBaixa[nY][5],6,2)+"/"+SubStr(aBaixa[nY][5],1,4))
-            cHoraVenc := SubStr(aBaixa[nY][5],12)
+            cHoraVenc := Time()
             cCodColCX := aBaixa[nY][6]
             cCodCX    := aBaixa[nY][7]
             cIDFormPg := aBaixa[nY][8]
@@ -3993,6 +4008,7 @@ User Function fBaixaFin(cIDMOV)
             IF !(_cAlias)->(EoF())
                 
                 cHist := "Pagamento: " + AllTrim(FWGetSX5('24',(_cAlias)->AE_TIPO,'pt-br')[1][4])
+                nParcela++
                 fnCartPIX()
 
             EndIF
@@ -4016,352 +4032,342 @@ Static Function fnGeraBOL()
     Local cPath   := "/wsProcess/MEX?wsdl"
     Local cBody   := ""
     Local cResult := ""
+    Local cErrooWsdl := ""
 
-    cBody := '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/">'
-    cBody += '   <soapenv:Header/>'
-    cBody += '   <soapenv:Body>'
-    cBody += '      <tot:ExecuteWithXmlParams>'
-    cBody += '         <tot:ProcessServerName>FinBoletoInclusaoData</tot:ProcessServerName>'
-    cBody += '         <tot:strXmlParams><![CDATA[<?xml version="1.0" encoding="utf-16"?>'
-    cBody += '<FinBoletoParamsProc z:Id="i1" xmlns="http://www.totvs.com.br/RM/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance" xmlns:z="http://schemas.microsoft.com/2003/10/Serialization/">'
-    cBody += '  <ActionModule xmlns="http://www.totvs.com/">F</ActionModule>'
-    cBody += '  <ActionName xmlns="http://www.totvs.com/">FinBoletoInclusaoAction</ActionName>'
-    cBody += '  <CanParallelize xmlns="http://www.totvs.com/">true</CanParallelize>'
-    cBody += '  <CanSendMail xmlns="http://www.totvs.com/">false</CanSendMail>'
-    cBody += '  <CanWaitSchedule xmlns="http://www.totvs.com/">false</CanWaitSchedule>'
-    cBody += '  <CodUsuario xmlns="http://www.totvs.com/">'+ cUser +'</CodUsuario>'
-    cBody += '  <ConnectionId i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '  <ConnectionString i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '  <Context z:Id="i2" xmlns="http://www.totvs.com/" xmlns:a="http://www.totvs.com.br/RM/">'
-    cBody += '    <a:_params xmlns:b="http://schemas.microsoft.com/2003/10/Serialization/Arrays">'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$EXERCICIOFISCAL</b:Key>'
-    cBody += '        <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">2</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODLOCPRT</b:Key>'
-    cBody += '        <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODTIPOCURSO</b:Key>'
-    cBody += '        <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">1</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$EDUTIPOUSR</b:Key>'
-    cBody += '        <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">F</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODUNIDADEBIB</b:Key>'
-    cBody += '        <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">1</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODCOLIGADA</b:Key>'
-    cBody += '        <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">'+ cCodEmp +'</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$RHTIPOUSR</b:Key>'
-    cBody += '        <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">01</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODIGOEXTERNO</b:Key>'
-    cBody += '        <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODSISTEMA</b:Key>'
-    cBody += '        <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">F</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODUSUARIOSERVICO</b:Key>'
-    cBody += '        <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema" />'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODUSUARIO</b:Key>'
-    cBody += '        <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">'+ cUser +'</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$IDPRJ</b:Key>'
-    cBody += '        <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CHAPAFUNCIONARIO</b:Key>'
-    cBody += '        <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODFILIAL</b:Key>'
-    cBody += '        <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">1</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '    </a:_params>'
-    cBody += '    <a:Environment>DotNet</a:Environment>'
-    cBody += '  </Context>'
-    cBody += '  <CustomData i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '  <DisableIsolateProcess xmlns="http://www.totvs.com/">false</DisableIsolateProcess>'
-    cBody += '  <DriverType i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '  <ExecutionId xmlns="http://www.totvs.com/">4aabd6ad-4799-4fc7-935b-64a2d5bb6297</ExecutionId>'
-    cBody += '  <FailureMessage xmlns="http://www.totvs.com/">Falha na execução do processo</FailureMessage>'
-    cBody += '  <FriendlyLogs i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '  <HideProgressDialog xmlns="http://www.totvs.com/">false</HideProgressDialog>'
-    cBody += '  <HostName xmlns="http://www.totvs.com/">RECN100100655</HostName>'
-    cBody += '  <Initialized xmlns="http://www.totvs.com/">true</Initialized>'
-    cBody += '  <Ip xmlns="http://www.totvs.com/">192.168.56.1</Ip>'
-    cBody += '  <IsolateProcess xmlns="http://www.totvs.com/">false</IsolateProcess>'
-    cBody += '  <JobID xmlns="http://www.totvs.com/">'
-    cBody += '    <Children />'
-    cBody += '    <ExecID>1</ExecID>'
-    cBody += '    <ID>-1</ID>'
-    cBody += '    <IsPriorityJob>false</IsPriorityJob>'
-    cBody += '  </JobID>'
-    cBody += '  <JobServerHostName xmlns="http://www.totvs.com/">RECN100100655</JobServerHostName>'
-    cBody += '  <MasterActionName xmlns="http://www.totvs.com/">FinLanAction</MasterActionName>'
-    cBody += '  <MaximumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1000</MaximumQuantityOfPrimaryKeysPerProcess>'
-    cBody += '  <MinimumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1</MinimumQuantityOfPrimaryKeysPerProcess>'
-    cBody += '  <NetworkUser xmlns="http://www.totvs.com/">rimeson.pereira</NetworkUser>'
-    cBody += '  <NotifyEmail xmlns="http://www.totvs.com/">false</NotifyEmail>'
-    cBody += '  <NotifyEmailList i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />'
-    cBody += '  <NotifyFluig xmlns="http://www.totvs.com/">false</NotifyFluig>'
-    cBody += '  <OnlineMode xmlns="http://www.totvs.com/">false</OnlineMode>'
-    cBody += '  <PrimaryKeyList xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays">'
-    cBody += '    <a:ArrayOfanyType>'
-    cBody += '      <a:anyType i:type="b:short" xmlns:b="http://www.w3.org/2001/XMLSchema">1</a:anyType>'
-    cBody += '      <a:anyType i:type="b:int" xmlns:b="http://www.w3.org/2001/XMLSchema">4744</a:anyType>'
-    cBody += '    </a:ArrayOfanyType>'
-    cBody += '  </PrimaryKeyList>'
-    cBody += '  <PrimaryKeyNames xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays">'
-    cBody += '    <a:string>CODCOLIGADA</a:string>'
-    cBody += '    <a:string>IDLAN</a:string>'
-    cBody += '  </PrimaryKeyNames>'
-    cBody += '  <PrimaryKeyTableName xmlns="http://www.totvs.com/">FLAN</PrimaryKeyTableName>'
-    cBody += '  <ProcessName xmlns="http://www.totvs.com/">Inclusão de Boleto</ProcessName>'
-    cBody += '  <QuantityOfSplits xmlns="http://www.totvs.com/">0</QuantityOfSplits>'
-    cBody += '  <SaveLogInDatabase xmlns="http://www.totvs.com/">true</SaveLogInDatabase>'
-    cBody += '  <SaveParamsExecution xmlns="http://www.totvs.com/">false</SaveParamsExecution>'
-    cBody += '  <ScheduleDateTime xmlns="http://www.totvs.com/">2024-10-15T15:15:54.3234236-03:00</ScheduleDateTime>'
-    cBody += '  <Scheduler xmlns="http://www.totvs.com/">JobMonitor</Scheduler>'
-    cBody += '  <SendMail xmlns="http://www.totvs.com/">false</SendMail>'
-    cBody += '  <ServerName xmlns="http://www.totvs.com/">FinBoletoInclusaoData</ServerName>'
-    cBody += '  <ServiceInterface i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.datacontract.org/2004/07/System" />'
-    cBody += '  <ShouldParallelize xmlns="http://www.totvs.com/">false</ShouldParallelize>'
-    cBody += '  <ShowReExecuteButton xmlns="http://www.totvs.com/">true</ShowReExecuteButton>'
-    cBody += '  <StatusMessage i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '  <SuccessMessage xmlns="http://www.totvs.com/">Processo executado com sucesso</SuccessMessage>'
-    cBody += '  <SyncExecution xmlns="http://www.totvs.com/">false</SyncExecution>'
-    cBody += '  <UseJobMonitor xmlns="http://www.totvs.com/">true</UseJobMonitor>'
-    cBody += '  <UserName xmlns="http://www.totvs.com/">mestre</UserName>'
-    cBody += '  <WaitSchedule xmlns="http://www.totvs.com/">false</WaitSchedule>'
-    cBody += '  <AlterarDtaPrazoLimite>false</AlterarDtaPrazoLimite>'
-    cBody += '  <AlterarDtaVencContraApresentacao>false</AlterarDtaVencContraApresentacao>'
-    cBody += '  <AlterarDtaVencLan>false</AlterarDtaVencLan>'
-    cBody += '  <AtualizaCamposBD>false</AtualizaCamposBD>'
-    cBody += '  <CNABAceite>0</CNABAceite>'
-    cBody += '  <CNABComando i:nil="true" />'
-    cBody += '  <CNABInstrucao1 i:nil="true" />'
-    cBody += '  <CNABInstrucao2 i:nil="true" />'
-    cBody += '  <CNABInstrucao3 i:nil="true" />'
-    cBody += '  <CodAplicacao i:nil="true" />'
-    cBody += '  <CodColCxa>'+ cCodCX +'</CodColCxa>'
-    cBody += '  <CodColigada>'+ cCodEmp +'</CodColigada>'
-    cBody += '  <CodCxa />'
-    cBody += '  <DataInstrucao1 i:nil="true" />'
-    cBody += '  <DataInstrucao2 i:nil="true" />'
-    cBody += '  <DataInstrucao3 i:nil="true" />'
-    cBody += '  <DataSistema>'+ FWTimeStamp(3, dDataBase, Time()) +'</DataSistema>'
-    cBody += '  <DataVencimento i:nil="true" />'
-    cBody += '  <EspecieCNAB />'
-    cBody += '  <GerarBoletoParcial>false</GerarBoletoParcial>'
-    cBody += '  <IdConvenio>0</IdConvenio>'
-    cBody += '  <IdGrupoMensagem i:nil="true" />'
-    cBody += '  <LancamentosValidados>false</LancamentosValidados>'
-    cBody += '  <ListaAgrupamento>'
-    cBody += '    <FinAgrupamentoParamsProc z:Id="i3">'
-    cBody += '      <ActionModule i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ActionName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <CanParallelize xmlns="http://www.totvs.com/">false</CanParallelize>'
-    cBody += '      <CanSendMail xmlns="http://www.totvs.com/">false</CanSendMail>'
-    cBody += '      <CanWaitSchedule xmlns="http://www.totvs.com/">false</CanWaitSchedule>'
-    cBody += '      <CodUsuario i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ConnectionId i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ConnectionString i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <Context i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://www.totvs.com.br/RM/" />'
-    cBody += '      <CustomData i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <DisableIsolateProcess xmlns="http://www.totvs.com/">false</DisableIsolateProcess>'
-    cBody += '      <DriverType i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ExecutionId xmlns="http://www.totvs.com/">0954f395-46cd-44b2-b2ec-f92ab55d357b</ExecutionId>'
-    cBody += '      <FailureMessage xmlns="http://www.totvs.com/">Falha na execução do processo</FailureMessage>'
-    cBody += '      <FriendlyLogs i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <HideProgressDialog xmlns="http://www.totvs.com/">false</HideProgressDialog>'
-    cBody += '      <HostName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <Initialized xmlns="http://www.totvs.com/">false</Initialized>'
-    cBody += '      <Ip i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <IsolateProcess xmlns="http://www.totvs.com/">false</IsolateProcess>'
-    cBody += '      <JobID xmlns="http://www.totvs.com/">'
-    cBody += '        <Children />'
-    cBody += '        <ExecID>-1</ExecID>'
-    cBody += '        <ID>-1</ID>'
-    cBody += '        <IsPriorityJob>false</IsPriorityJob>'
-    cBody += '      </JobID>'
-    cBody += '      <JobServerHostName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <MasterActionName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <MaximumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1000</MaximumQuantityOfPrimaryKeysPerProcess>'
-    cBody += '      <MinimumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1</MinimumQuantityOfPrimaryKeysPerProcess>'
-    cBody += '      <NetworkUser i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <NotifyEmail xmlns="http://www.totvs.com/">false</NotifyEmail>'
-    cBody += '      <NotifyEmailList i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />'
-    cBody += '      <NotifyFluig xmlns="http://www.totvs.com/">false</NotifyFluig>'
-    cBody += '      <OnlineMode xmlns="http://www.totvs.com/">false</OnlineMode>'
-    cBody += '      <PrimaryKeyList xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />'
-    cBody += '      <PrimaryKeyNames i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />'
-    cBody += '      <PrimaryKeyTableName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ProcessName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <QuantityOfSplits xmlns="http://www.totvs.com/">0</QuantityOfSplits>'
-    cBody += '      <SaveLogInDatabase xmlns="http://www.totvs.com/">true</SaveLogInDatabase>'
-    cBody += '      <SaveParamsExecution xmlns="http://www.totvs.com/">false</SaveParamsExecution>'
-    cBody += '      <ScheduleDateTime xmlns="http://www.totvs.com/">2024-10-15T15:15:57.0732099-03:00</ScheduleDateTime>'
-    cBody += '      <Scheduler xmlns="http://www.totvs.com/">JobMonitor</Scheduler>'
-    cBody += '      <SendMail xmlns="http://www.totvs.com/">false</SendMail>'
-    cBody += '      <ServerName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ServiceInterface i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.datacontract.org/2004/07/System" />'
-    cBody += '      <ShouldParallelize xmlns="http://www.totvs.com/">false</ShouldParallelize>'
-    cBody += '      <ShowReExecuteButton xmlns="http://www.totvs.com/">true</ShowReExecuteButton>'
-    cBody += '      <StatusMessage i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <SuccessMessage xmlns="http://www.totvs.com/">Processo executado com sucesso</SuccessMessage>'
-    cBody += '      <SyncExecution xmlns="http://www.totvs.com/">false</SyncExecution>'
-    cBody += '      <UseJobMonitor xmlns="http://www.totvs.com/">true</UseJobMonitor>'
-    cBody += '      <UserName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <WaitSchedule xmlns="http://www.totvs.com/">false</WaitSchedule>'
-    cBody += '      <CodBarras i:nil="true" />'
-    cBody += '      <CodCliFor>'+ cCodCliFo +'</CodCliFor>'
-    cBody += '      <CodColCliFor>'+ cCodColFo +'</CodColCliFor>'
-    cBody += '      <CodColigada>'+ cCodEmp +'</CodColigada>'
-    cBody += '      <ContraApresentacao>false</ContraApresentacao>'
-    cBody += '      <FormaPagamento i:nil="true" />'
-    cBody += '      <IPTE i:nil="true" />'
-    cBody += '      <IdBoleto>0</IdBoleto>'
-    cBody += '      <IdConvenio>0</IdConvenio>'
-    cBody += '      <IdLan>'+ cIDLan +'</IdLan>'
-    cBody += '      <NossoNumero />'
-    cBody += '      <NumeroDocumento>'+ cNumDocRM +'</NumeroDocumento>'
-    cBody += '      <SegundoNumero i:nil="true" />'
-    cBody += '      <StatusBoleto>EmAberto</StatusBoleto>'
-    cBody += '      <TipoBoleto>BoletoCobranca</TipoBoleto>'
-    cBody += '      <ValorBoleto>0</ValorBoleto>'
-    cBody += '      <Vencimento>'+ FWTimeStamp(3, dDataVenc, cHoraVenc) +'</Vencimento>'
-    cBody += '    </FinAgrupamentoParamsProc>'
-    cBody += '  </ListaAgrupamento>'
-    cBody += '  <OpcaoGeracaoBoleto>UmBoletoParaCadaLancamentos</OpcaoGeracaoBoleto>'
-    cBody += '  <QtdeDiasInstrucao1 i:nil="true" />'
-    cBody += '  <QtdeDiasInstrucao2 i:nil="true" />'
-    cBody += '  <QtdeDiasInstrucao3 i:nil="true" />'
-    cBody += '  <RegistrarOnLineBoleto>false</RegistrarOnLineBoleto>'
-    cBody += '  <TipoBoleto>BoletoCobranca</TipoBoleto>'
-    cBody += '  <ValorParcial i:nil="true" />'
-    cBody += '  <listaLan>'
-    cBody += '    <FinLanBoletoParamsProc z:Id="i4">'
-    cBody += '      <ActionModule i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ActionName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <CanParallelize xmlns="http://www.totvs.com/">false</CanParallelize>'
-    cBody += '      <CanSendMail xmlns="http://www.totvs.com/">false</CanSendMail>'
-    cBody += '      <CanWaitSchedule xmlns="http://www.totvs.com/">false</CanWaitSchedule>'
-    cBody += '      <CodUsuario i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ConnectionId i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ConnectionString i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <Context i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://www.totvs.com.br/RM/" />'
-    cBody += '      <CustomData i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <DisableIsolateProcess xmlns="http://www.totvs.com/">false</DisableIsolateProcess>'
-    cBody += '      <DriverType i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ExecutionId xmlns="http://www.totvs.com/">7759c864-80a4-4cd9-bd04-b223574c819f</ExecutionId>'
-    cBody += '      <FailureMessage xmlns="http://www.totvs.com/">Falha na execução do processo</FailureMessage>'
-    cBody += '      <FriendlyLogs i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <HideProgressDialog xmlns="http://www.totvs.com/">false</HideProgressDialog>'
-    cBody += '      <HostName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <Initialized xmlns="http://www.totvs.com/">false</Initialized>'
-    cBody += '      <Ip i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <IsolateProcess xmlns="http://www.totvs.com/">false</IsolateProcess>'
-    cBody += '      <JobID xmlns="http://www.totvs.com/">'
-    cBody += '        <Children />'
-    cBody += '        <ExecID>-1</ExecID>'
-    cBody += '        <ID>-1</ID>'
-    cBody += '        <IsPriorityJob>false</IsPriorityJob>'
-    cBody += '      </JobID>'
-    cBody += '      <JobServerHostName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <MasterActionName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <MaximumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1000</MaximumQuantityOfPrimaryKeysPerProcess>'
-    cBody += '      <MinimumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1</MinimumQuantityOfPrimaryKeysPerProcess>'
-    cBody += '      <NetworkUser i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <NotifyEmail xmlns="http://www.totvs.com/">false</NotifyEmail>'
-    cBody += '      <NotifyEmailList i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />'
-    cBody += '      <NotifyFluig xmlns="http://www.totvs.com/">false</NotifyFluig>'
-    cBody += '      <OnlineMode xmlns="http://www.totvs.com/">false</OnlineMode>'
-    cBody += '      <PrimaryKeyList xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />'
-    cBody += '      <PrimaryKeyNames i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />'
-    cBody += '      <PrimaryKeyTableName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ProcessName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <QuantityOfSplits xmlns="http://www.totvs.com/">0</QuantityOfSplits>'
-    cBody += '      <SaveLogInDatabase xmlns="http://www.totvs.com/">true</SaveLogInDatabase>'
-    cBody += '      <SaveParamsExecution xmlns="http://www.totvs.com/">false</SaveParamsExecution>'
-    cBody += '      <ScheduleDateTime xmlns="http://www.totvs.com/">2024-10-15T15:15:55.854605-03:00</ScheduleDateTime>'
-    cBody += '      <Scheduler xmlns="http://www.totvs.com/">JobMonitor</Scheduler>'
-    cBody += '      <SendMail xmlns="http://www.totvs.com/">false</SendMail>'
-    cBody += '      <ServerName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ServiceInterface i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.datacontract.org/2004/07/System" />'
-    cBody += '      <ShouldParallelize xmlns="http://www.totvs.com/">false</ShouldParallelize>'
-    cBody += '      <ShowReExecuteButton xmlns="http://www.totvs.com/">true</ShowReExecuteButton>'
-    cBody += '      <StatusMessage i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <SuccessMessage xmlns="http://www.totvs.com/">Processo executado com sucesso</SuccessMessage>'
-    cBody += '      <SyncExecution xmlns="http://www.totvs.com/">false</SyncExecution>'
-    cBody += '      <UseJobMonitor xmlns="http://www.totvs.com/">true</UseJobMonitor>'
-    cBody += '      <UserName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <WaitSchedule xmlns="http://www.totvs.com/">false</WaitSchedule>'
-    cBody += '      <BaixaPendente>Livre</BaixaPendente>'
-    cBody += '      <CarenciaJuros>0</CarenciaJuros>'
-    cBody += '      <CodCCusto i:nil="true" />'
-    cBody += '      <CodCfo>'+ cCodCliFo +'</CodCfo>'
-    cBody += '      <CodColCfo>'+ cCodColFo +'</CodColCfo>'
-    cBody += '      <CodColCxa>'+ cCodColCX +'</CodColCxa>'
-    cBody += '      <CodColigada>'+ cCodEmp +'</CodColigada>'
-    cBody += '      <CodCxa>'+ cCodCX +'</CodCxa>'
-    cBody += '      <CodDepartamento />'
-    cBody += '      <CodFilial>'+ cCodFil +'</CodFilial>'
-    cBody += '      <CodIndexador i:nil="true" />'
-    cBody += '      <CodMoeda i:nil="true" />'
-    cBody += '      <CodSistema>F</CodSistema>'
-    cBody += '      <CodTabOp1 />'
-    cBody += '      <CodTabOp2 />'
-    cBody += '      <CodTabOp3 />'
-    cBody += '      <CodTabOp4 />'
-    cBody += '      <CodTabOp5 />'
-    cBody += '      <CodTdo>59</CodTdo>'
-    cBody += '      <Convenio>4905718817</Convenio>'
-    cBody += '      <ConvenioAtivo>0</ConvenioAtivo>'
-    cBody += '      <CxaAtiva>0</CxaAtiva>'
-    cBody += '      <DataOP1 i:nil="true" />'
-    cBody += '      <DataOP2 i:nil="true" />'
-    cBody += '      <DataOP3 i:nil="true" />'
-    cBody += '      <DataOP4 i:nil="true" />'
-    cBody += '      <DataOP5 i:nil="true" />'
-    cBody += '      <DataVencimento>'+ FWTimeStamp(3, dDataVenc, cHoraVenc) +'</DataVencimento>'
-    cBody += '      <Historico>'+ cHist +'</Historico>'
-    cBody += '      <IdConvenio>186</IdConvenio>'
-    cBody += '      <IdPgto>'+ cIDFormPg +'</IdPgto>'
-    cBody += '      <Idlan>'+ cIDLan +'</Idlan>'
-    cBody += '      <JurosDia>0</JurosDia>'
-    cBody += '      <MultaDia>0</MultaDia>'
-    cBody += '      <NossoNumero />'
-    cBody += '      <NumBloqueios>Sem</NumBloqueios>'
-    cBody += '      <NumeroDocumento>'+ cNumDocRM +'</NumeroDocumento>'
-    cBody += '      <PagRec>Receber</PagRec>'
-    cBody += '      <SegundoNumero />'
-    cBody += '      <StatusBol>EmAberto</StatusBol>'
-    cBody += '      <TipoFormaPagto>0</TipoFormaPagto>'
-    cBody += '      <TipoJurosDia>Taxa</TipoJurosDia>'
-    cBody += '      <ValorDesconto>0</ValorDesconto>'
-    cBody += '      <ValorJuros>0</ValorJuros>'
-    cBody += '      <ValorMulta>0</ValorMulta>'
-    cBody += '      <ValorOriginal>'+ cValor +'</ValorOriginal>'
-    cBody += '    </FinLanBoletoParamsProc>'
-    cBody += '  </listaLan>'
-    cBody += '</FinBoletoParamsProc>]]></tot:strXmlParams>'
-    cBody += '      </tot:ExecuteWithXmlParams>'
-    cBody += '   </soapenv:Body>'
-    cBody += '</soapenv:Envelope>'
+    cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/">'
+    cBody += ' <soapenv:Header/>'
+    cBody += ' <soapenv:Body>'
+    cBody += ' <tot:ExecuteWithXmlParams>'
+    cBody += ' <tot:ProcessServerName>FinBoletoInclusaoData</tot:ProcessServerName>'
+    cBody += ' <tot:strXmlParams><![CDATA[<?xml version="1.0" encoding="utf-16"?>'
+    cBody += ' <FinBoletoParamsProc z:Id="i1" xmlns="http://www.totvs.com.br/RM/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance" xmlns:z="http://schemas.microsoft.com/2003/10/Serialization/">'
+    cBody += ' <ActionModule xmlns="http://www.totvs.com/">F</ActionModule>'
+    cBody += ' <ActionName xmlns="http://www.totvs.com/">FinBoletoInclusaoAction</ActionName>'
+    cBody += ' <CanParallelize xmlns="http://www.totvs.com/">true</CanParallelize>'
+    cBody += ' <CanSendMail xmlns="http://www.totvs.com/">false</CanSendMail>'
+    cBody += ' <CanWaitSchedule xmlns="http://www.totvs.com/">false</CanWaitSchedule>'
+    cBody += ' <CodUsuario xmlns="http://www.totvs.com/">'+ cUser +'</CodUsuario>'
+    cBody += ' <ConnectionId i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <ConnectionString i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <Context z:Id="i2" xmlns="http://www.totvs.com/" xmlns:a="http://www.totvs.com.br/RM/">'
+    cBody += ' <a:_params xmlns:b="http://schemas.microsoft.com/2003/10/Serialization/Arrays">'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$EXERCICIOFISCAL</b:Key>'
+    cBody += ' <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">'+ cCodEmp +'</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODLOCPRT</b:Key>'
+    cBody += ' <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODTIPOCURSO</b:Key>'
+    cBody += ' <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">1</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$EDUTIPOUSR</b:Key>'
+    cBody += ' <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">F</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODUNIDADEBIB</b:Key>'
+    cBody += ' <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">1</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODCOLIGADA</b:Key>'
+    cBody += ' <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">20</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$RHTIPOUSR</b:Key>'
+    cBody += ' <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">01</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODIGOEXTERNO</b:Key>'
+    cBody += ' <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODSISTEMA</b:Key>'
+    cBody += ' <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">F</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODUSUARIOSERVICO</b:Key>'
+    cBody += ' <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema"/>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODUSUARIO</b:Key>'
+    cBody += ' <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">'+ cUser +'</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$IDPRJ</b:Key>'
+    cBody += ' <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CHAPAFUNCIONARIO</b:Key>'
+    cBody += ' <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODFILIAL</b:Key>'
+    cBody += ' <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">1</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' </a:_params>'
+    cBody += ' <a:Environment>DotNet</a:Environment>'
+    cBody += ' </Context>'
+    cBody += ' <CustomData i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <DisableIsolateProcess xmlns="http://www.totvs.com/">false</DisableIsolateProcess>'
+    cBody += ' <DriverType i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <ExecutionId xmlns="http://www.totvs.com/">4aabd6ad-4799-4fc7-935b-64a2d5bb6297</ExecutionId>'
+    cBody += ' <FailureMessage xmlns="http://www.totvs.com/">Falha na execucao do processo</FailureMessage>'
+    cBody += ' <FriendlyLogs i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <HideProgressDialog xmlns="http://www.totvs.com/">false</HideProgressDialog>'
+    cBody += ' <HostName xmlns="http://www.totvs.com/">RECN100100655</HostName>'
+    cBody += ' <Initialized xmlns="http://www.totvs.com/">true</Initialized>'
+    cBody += ' <Ip xmlns="http://www.totvs.com/">192.168.56.1</Ip>'
+    cBody += ' <IsolateProcess xmlns="http://www.totvs.com/">false</IsolateProcess>'
+    cBody += ' <JobID xmlns="http://www.totvs.com/">'
+    cBody += ' <Children/>'
+    cBody += ' <ExecID>1</ExecID>'
+    cBody += ' <ID>-1</ID>'
+    cBody += ' <IsPriorityJob>false</IsPriorityJob>'
+    cBody += ' </JobID>'
+    cBody += ' <JobServerHostName xmlns="http://www.totvs.com/">RECN100100655</JobServerHostName>'
+    cBody += ' <MasterActionName xmlns="http://www.totvs.com/">FinLanAction</MasterActionName>'
+    cBody += ' <MaximumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1000</MaximumQuantityOfPrimaryKeysPerProcess>'
+    cBody += ' <MinimumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1</MinimumQuantityOfPrimaryKeysPerProcess>'
+    cBody += ' <NetworkUser xmlns="http://www.totvs.com/">rimeson.pereira</NetworkUser>'
+    cBody += ' <NotifyEmail xmlns="http://www.totvs.com/">false</NotifyEmail>'
+    cBody += ' <NotifyEmailList i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays"/>'
+    cBody += ' <NotifyFluig xmlns="http://www.totvs.com/">false</NotifyFluig>'
+    cBody += ' <OnlineMode xmlns="http://www.totvs.com/">false</OnlineMode>'
+    cBody += ' <PrimaryKeyList xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays">'
+    cBody += ' <a:ArrayOfanyType>'
+    cBody += ' <a:anyType i:type="b:short" xmlns:b="http://www.w3.org/2001/XMLSchema">1</a:anyType>'
+    cBody += ' <a:anyType i:type="b:int" xmlns:b="http://www.w3.org/2001/XMLSchema">4744</a:anyType>'
+    cBody += ' </a:ArrayOfanyType>'
+    cBody += ' </PrimaryKeyList>'
+    cBody += ' <PrimaryKeyNames xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays">'
+    cBody += ' <a:string>CODCOLIGADA</a:string>'
+    cBody += ' <a:string>IDLAN</a:string>'
+    cBody += ' </PrimaryKeyNames>'
+    cBody += ' <PrimaryKeyTableName xmlns="http://www.totvs.com/">FLAN</PrimaryKeyTableName>'
+    cBody += ' <ProcessName xmlns="http://www.totvs.com/">Inclusao de Boleto</ProcessName>'
+    cBody += ' <QuantityOfSplits xmlns="http://www.totvs.com/">0</QuantityOfSplits>'
+    cBody += ' <SaveLogInDatabase xmlns="http://www.totvs.com/">true</SaveLogInDatabase>'
+    cBody += ' <SaveParamsExecution xmlns="http://www.totvs.com/">false</SaveParamsExecution>'
+    cBody += ' <ScheduleDateTime xmlns="http://www.totvs.com/">2024-10-15T15:15:54.3234236-03:00</ScheduleDateTime>'
+    cBody += ' <Scheduler xmlns="http://www.totvs.com/">JobMonitor</Scheduler>'
+    cBody += ' <SendMail xmlns="http://www.totvs.com/">false</SendMail>'
+    cBody += ' <ServerName xmlns="http://www.totvs.com/">FinBoletoInclusaoData</ServerName>'
+    cBody += ' <ServiceInterface i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.datacontract.org/2004/07/System"/>'
+    cBody += ' <ShouldParallelize xmlns="http://www.totvs.com/">false</ShouldParallelize>'
+    cBody += ' <ShowReExecuteButton xmlns="http://www.totvs.com/">true</ShowReExecuteButton>'
+    cBody += ' <StatusMessage i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <SuccessMessage xmlns="http://www.totvs.com/">Processo executado com sucesso</SuccessMessage>'
+    cBody += ' <SyncExecution xmlns="http://www.totvs.com/">false</SyncExecution>'
+    cBody += ' <UseJobMonitor xmlns="http://www.totvs.com/">true</UseJobMonitor>'
+    cBody += ' <UserName xmlns="http://www.totvs.com/">mestre</UserName>'
+    cBody += ' <WaitSchedule xmlns="http://www.totvs.com/">false</WaitSchedule>'
+    cBody += ' <AlterarDtaPrazoLimite>false</AlterarDtaPrazoLimite>'
+    cBody += ' <AlterarDtaVencContraApresentacao>false</AlterarDtaVencContraApresentacao>'
+    cBody += ' <AlterarDtaVencLan>false</AlterarDtaVencLan>'
+    cBody += ' <AtualizaCamposBD>false</AtualizaCamposBD>'
+    cBody += ' <CNABAceite>0</CNABAceite>'
+    cBody += ' <CNABComando i:nil="true"/>'
+    cBody += ' <CNABInstrucao1 i:nil="true"/>'
+    cBody += ' <CNABInstrucao2 i:nil="true"/>'
+    cBody += ' <CNABInstrucao3 i:nil="true"/>'
+    cBody += ' <CodAplicacao i:nil="true"/>'
+    cBody += ' <CodColCxa>'+ cCodColCX +'</CodColCxa>'
+    cBody += ' <CodColigada>'+ cCodEmp +'</CodColigada>'
+    cBody += ' <CodCxa/>'
+    cBody += ' <DataInstrucao1 i:nil="true"/>'
+    cBody += ' <DataInstrucao2 i:nil="true"/>'
+    cBody += ' <DataInstrucao3 i:nil="true"/>'
+    cBody += ' <DataSistema>'+ FWTimeStamp(3, dDataBase, Time()) +'</DataSistema>'
+    cBody += ' <DataVencimento i:nil="true"/>'
+    cBody += ' <EspecieCNAB/>'
+    cBody += ' <GerarBoletoParcial>false</GerarBoletoParcial>'
+    cBody += ' <IdConvenio>0</IdConvenio>'
+    cBody += ' <IdGrupoMensagem i:nil="true"/>'
+    cBody += ' <LancamentosValidados>false</LancamentosValidados>'
+    cBody += ' <ListaAgrupamento>'
+    cBody += ' <FinAgrupamentoParamsProc z:Id="i3">'
+    cBody += ' <ActionModule i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <ActionName i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <CanParallelize xmlns="http://www.totvs.com/">false</CanParallelize>'
+    cBody += ' <CanSendMail xmlns="http://www.totvs.com/">false</CanSendMail>'
+    cBody += ' <CanWaitSchedule xmlns="http://www.totvs.com/">false</CanWaitSchedule>'
+    cBody += ' <CodUsuario i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <ConnectionId i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <ConnectionString i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <Context i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://www.totvs.com.br/RM/"/>'
+    cBody += ' <CustomData i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <DisableIsolateProcess xmlns="http://www.totvs.com/">false</DisableIsolateProcess>'
+    cBody += ' <DriverType i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <ExecutionId xmlns="http://www.totvs.com/">0954f395-46cd-44b2-b2ec-f92ab55d357b</ExecutionId>'
+    cBody += ' <FailureMessage xmlns="http://www.totvs.com/">Falha na execucao do processo</FailureMessage>'
+    cBody += ' <FriendlyLogs i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <HideProgressDialog xmlns="http://www.totvs.com/">false</HideProgressDialog>'
+    cBody += ' <HostName i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <Initialized xmlns="http://www.totvs.com/">false</Initialized>'
+    cBody += ' <Ip i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <IsolateProcess xmlns="http://www.totvs.com/">false</IsolateProcess>'
+    cBody += ' <JobID xmlns="http://www.totvs.com/"><Children/><ExecID>-1</ExecID> <ID>-1</ID> <IsPriorityJob>false</IsPriorityJob> </JobID>'
+    cBody += ' <JobServerHostName i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <MasterActionName i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <MaximumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1000</MaximumQuantityOfPrimaryKeysPerProcess>'
+    cBody += ' <MinimumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1</MinimumQuantityOfPrimaryKeysPerProcess>'
+    cBody += ' <NetworkUser i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <NotifyEmail xmlns="http://www.totvs.com/">false</NotifyEmail>'
+    cBody += ' <NotifyEmailList i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays"/>'
+    cBody += ' <NotifyFluig xmlns="http://www.totvs.com/">false</NotifyFluig>'
+    cBody += ' <OnlineMode xmlns="http://www.totvs.com/">false</OnlineMode>'
+    cBody += ' <PrimaryKeyList xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays"/>'
+    cBody += ' <PrimaryKeyNames i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays"/>'
+    cBody += ' <PrimaryKeyTableName i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <ProcessName i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <QuantityOfSplits xmlns="http://www.totvs.com/">0</QuantityOfSplits>'
+    cBody += ' <SaveLogInDatabase xmlns="http://www.totvs.com/">true</SaveLogInDatabase>'
+    cBody += ' <SaveParamsExecution xmlns="http://www.totvs.com/">false</SaveParamsExecution>'
+    cBody += ' <ScheduleDateTime xmlns="http://www.totvs.com/">2024-10-15T15:15:57.0732099-03:00</ScheduleDateTime>'
+    cBody += ' <Scheduler xmlns="http://www.totvs.com/">JobMonitor</Scheduler>'
+    cBody += ' <SendMail xmlns="http://www.totvs.com/">false</SendMail>'
+    cBody += ' <ServerName i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <ServiceInterface i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.datacontract.org/2004/07/System"/>'
+    cBody += ' <ShouldParallelize xmlns="http://www.totvs.com/">false</ShouldParallelize>'
+    cBody += ' <ShowReExecuteButton xmlns="http://www.totvs.com/">true</ShowReExecuteButton>'
+    cBody += ' <StatusMessage i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <SuccessMessage xmlns="http://www.totvs.com/">Processo executado com sucesso</SuccessMessage>'
+    cBody += ' <SyncExecution xmlns="http://www.totvs.com/">false</SyncExecution>'
+    cBody += ' <UseJobMonitor xmlns="http://www.totvs.com/">true</UseJobMonitor>'
+    cBody += ' <UserName i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <WaitSchedule xmlns="http://www.totvs.com/">false</WaitSchedule>'
+    cBody += ' <CodBarras i:nil="true"/>'
+    cBody += ' <CodCliFor>'+ cCodCliFo +'</CodCliFor>'
+    cBody += ' <CodColCliFor>'+ cCodColFo +'</CodColCliFor>'
+    cBody += ' <CodColigada>'+ cCodEmp +'</CodColigada>'
+    cBody += ' <ContraApresentacao>false</ContraApresentacao>'
+    cBody += ' <FormaPagamento i:nil="true"/>'
+    cBody += ' <IPTE i:nil="true"/>'
+    cBody += ' <IdBoleto>0</IdBoleto>'
+    cBody += ' <IdConvenio>0</IdConvenio>'
+    cBody += ' <IdLan>'+ cIDLan +'</IdLan>'
+    cBody += ' <NossoNumero/>'
+    cBody += ' <NumeroDocumento>'+ cNumDocRM +'</NumeroDocumento>'
+    cBody += ' <SegundoNumero i:nil="true"/>'
+    cBody += ' <StatusBoleto>EmAberto</StatusBoleto>'
+    cBody += ' <TipoBoleto>BoletoCobranca</TipoBoleto>'
+    cBody += ' <ValorBoleto>0</ValorBoleto>'
+    cBody += ' <Vencimento>'+ FWTimeStamp(3, dDataVenc, cHoraVenc) +'</Vencimento>'
+    cBody += ' </FinAgrupamentoParamsProc>'
+    cBody += ' </ListaAgrupamento>'
+    cBody += ' <OpcaoGeracaoBoleto>UmBoletoParaCadaLancamentos</OpcaoGeracaoBoleto>'
+    cBody += ' <QtdeDiasInstrucao1 i:nil="true"/>'
+    cBody += ' <QtdeDiasInstrucao2 i:nil="true"/>'
+    cBody += ' <QtdeDiasInstrucao3 i:nil="true"/>'
+    cBody += ' <RegistrarOnLineBoleto>false</RegistrarOnLineBoleto>'
+    cBody += ' <TipoBoleto>BoletoCobranca</TipoBoleto>'
+    cBody += ' <ValorParcial i:nil="true"/>'
+    cBody += ' <listaLan><FinLanBoletoParamsProc z:Id="i4">'
+    cBody += ' <ActionModule i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <ActionName i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <CanParallelize xmlns="http://www.totvs.com/">false</CanParallelize>'
+    cBody += ' <CanSendMail xmlns="http://www.totvs.com/">false</CanSendMail>'
+    cBody += ' <CanWaitSchedule xmlns="http://www.totvs.com/">false</CanWaitSchedule>'
+    cBody += ' <CodUsuario i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <ConnectionId i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <ConnectionString i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <Context i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://www.totvs.com.br/RM/"/>'
+    cBody += ' <CustomData i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <DisableIsolateProcess xmlns="http://www.totvs.com/">false</DisableIsolateProcess>'
+    cBody += ' <DriverType i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <ExecutionId xmlns="http://www.totvs.com/">7759c864-80a4-4cd9-bd04-b223574c819f</ExecutionId>'
+    cBody += ' <FailureMessage xmlns="http://www.totvs.com/">Falha na execucao do processo</FailureMessage>'
+    cBody += ' <FriendlyLogs i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <HideProgressDialog xmlns="http://www.totvs.com/">false</HideProgressDialog>'
+    cBody += ' <HostName i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <Initialized xmlns="http://www.totvs.com/">false</Initialized>'
+    cBody += ' <Ip i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <IsolateProcess xmlns="http://www.totvs.com/">false</IsolateProcess>'
+    cBody += ' <JobID xmlns="http://www.totvs.com/"> <Children/> <ExecID>-1</ExecID> <ID>-1</ID> <IsPriorityJob>false</IsPriorityJob></JobID>'
+    cBody += ' <JobServerHostName i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <MasterActionName i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <MaximumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1000</MaximumQuantityOfPrimaryKeysPerProcess>'
+    cBody += ' <MinimumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1</MinimumQuantityOfPrimaryKeysPerProcess>'
+    cBody += ' <NetworkUser i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <NotifyEmail xmlns="http://www.totvs.com/">false</NotifyEmail>'
+    cBody += ' <NotifyEmailList i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays"/>'
+    cBody += ' <NotifyFluig xmlns="http://www.totvs.com/">false</NotifyFluig>'
+    cBody += ' <OnlineMode xmlns="http://www.totvs.com/">false</OnlineMode>'
+    cBody += ' <PrimaryKeyList xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays"/>'
+    cBody += ' <PrimaryKeyNames i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays"/>'
+    cBody += ' <PrimaryKeyTableName i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <ProcessName i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <QuantityOfSplits xmlns="http://www.totvs.com/">0</QuantityOfSplits>'
+    cBody += ' <SaveLogInDatabase xmlns="http://www.totvs.com/">true</SaveLogInDatabase>'
+    cBody += ' <SaveParamsExecution xmlns="http://www.totvs.com/">false</SaveParamsExecution>'
+    cBody += ' <ScheduleDateTime xmlns="http://www.totvs.com/">2024-10-15T15:15:55.854605-03:00</ScheduleDateTime>'
+    cBody += ' <Scheduler xmlns="http://www.totvs.com/">JobMonitor</Scheduler>'
+    cBody += ' <SendMail xmlns="http://www.totvs.com/">false</SendMail>'
+    cBody += ' <ServerName i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <ServiceInterface i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.datacontract.org/2004/07/System"/>'
+    cBody += ' <ShouldParallelize xmlns="http://www.totvs.com/">false</ShouldParallelize>'
+    cBody += ' <ShowReExecuteButton xmlns="http://www.totvs.com/">true</ShowReExecuteButton>'
+    cBody += ' <StatusMessage i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <SuccessMessage xmlns="http://www.totvs.com/">Processo executado com sucesso</SuccessMessage>'
+    cBody += ' <SyncExecution xmlns="http://www.totvs.com/">false</SyncExecution>'
+    cBody += ' <UseJobMonitor xmlns="http://www.totvs.com/">true</UseJobMonitor>'
+    cBody += ' <UserName i:nil="true" xmlns="http://www.totvs.com/"/>'
+    cBody += ' <WaitSchedule xmlns="http://www.totvs.com/">false</WaitSchedule>'
+    cBody += ' <BaixaPendente>Livre</BaixaPendente>'
+    cBody += ' <CarenciaJuros>0</CarenciaJuros>'
+    cBody += ' <CodCCusto i:nil="true"/>'
+    cBody += ' <CodCfo>'+ cCodCliFo +'</CodCfo>'
+    cBody += ' <CodColCfo>'+ cCodColFo +'</CodColCfo>'
+    cBody += ' <CodColCxa>'+ cCodColCX +'</CodColCxa>'
+    cBody += ' <CodColigada>'+ cCodEmp +'</CodColigada>'
+    cBody += ' <CodCxa>'+ cCodCX +'</CodCxa>'
+    cBody += ' <CodDepartamento/>'
+    cBody += ' <CodFilial>'+ cCodFil +'</CodFilial>'
+    cBody += ' <CodIndexador i:nil="true"/>'
+    cBody += ' <CodMoeda i:nil="true"/>'
+    cBody += ' <CodSistema>F</CodSistema>'
+    cBody += ' <CodTabOp1/>'
+    cBody += ' <CodTabOp2/>'
+    cBody += ' <CodTabOp3/>'
+    cBody += ' <CodTabOp4/>'
+    cBody += ' <CodTabOp5/>'
+    cBody += ' <CodTdo>59</CodTdo>'
+    cBody += ' <Convenio>4905718817</Convenio>'
+    cBody += ' <ConvenioAtivo>0</ConvenioAtivo>'
+    cBody += ' <CxaAtiva>0</CxaAtiva>'
+    cBody += ' <DataOP1 i:nil="true"/>'
+    cBody += ' <DataOP2 i:nil="true"/>'
+    cBody += ' <DataOP3 i:nil="true"/>'
+    cBody += ' <DataOP4 i:nil="true"/>'
+    cBody += ' <DataOP5 i:nil="true"/>'
+    cBody += ' <DataVencimento>'+ FWTimeStamp(3, dDataVenc, cHoraVenc) +'</DataVencimento>'
+    cBody += ' <Historico>'+ cHist +'</Historico>'
+    cBody += ' <IdConvenio>'+ cIDConv +'</IdConvenio>'
+    cBody += ' <IdPgto>'+ cIDFormPg +'</IdPgto>'
+    cBody += ' <Idlan>'+ cIDLan +'</Idlan>'
+    cBody += ' <JurosDia>0</JurosDia>'
+    cBody += ' <MultaDia>0</MultaDia>'
+    cBody += ' <NossoNumero/>'
+    cBody += ' <NumBloqueios>Sem</NumBloqueios>'
+    cBody += ' <NumeroDocumento>'+ cNumDocRM +'</NumeroDocumento>'
+    cBody += ' <PagRec>Receber</PagRec>'
+    cBody += ' <SegundoNumero/>'
+    cBody += ' <StatusBol>EmAberto</StatusBol>'
+    cBody += ' <TipoFormaPagto>0</TipoFormaPagto>'
+    cBody += ' <TipoJurosDia>Taxa</TipoJurosDia>'
+    cBody += ' <ValorDesconto>0</ValorDesconto>'
+    cBody += ' <ValorJuros>0</ValorJuros>'
+    cBody += ' <ValorMulta>0</ValorMulta>'
+    cBody += ' <ValorOriginal>'+ cValor +'</ValorOriginal>'
+    cBody += ' </FinLanBoletoParamsProc>'
+    cBody += ' </listaLan>'
+    cBody += ' </FinBoletoParamsProc>]]></tot:strXmlParams>'
+    cBody += ' </tot:ExecuteWithXmlParams>'
+    cBody += ' </soapenv:Body>'
+    cBody += ' </soapenv:Envelope>'
     oWsdl := TWsdlManager():New()
     oWsdl:nTimeout         := 120
     oWsdl:lSSLInsecure     := .T.
@@ -4371,14 +4377,16 @@ Static Function fnGeraBOL()
     oWsdl:lVerbose         := .T.
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("ExecuteWithXmlParams")
-        ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-        u_fnGrvLog('FinBoletoInclusaoData',cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),'Erro gerar Boleto, IDLan: '+cIDLan,"2","ERRO")
+        cErrooWsdl := DecodeUTF8(oWsdl:cError, "cp1252")
+        ApMsgAlert(cErrooWsdl,"Erro Integracao TOTVS Corpore RM")
+        u_fnGrvLog('FinBoletoInclusaoData',cBody,cResult,cErrooWsdl,'Erro ao gerar Boleto, IDLan: '+cIDLan,"2","ERRO")
     Else
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
-        cBody := AllTrim(cBody)
+        
         If !oWsdl:SendSoapMsg( cBody )
-            ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            u_fnGrvLog('FinBoletoInclusaoData',cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),'Erro gerar Boleto, IDLan: '+cIDLan,"2","ERRO")
+            cErrooWsdl := DecodeUTF8(oWsdl:cError, "cp1252")
+            ApMsgAlert(cErrooWsdl,"Erro Integracao TOTVS Corpore RM")
+            u_fnGrvLog('FinBoletoInclusaoData',cBody,cResult,cErrooWsdl,'Erro ao gerar Boleto, IDLan: '+cIDLan,"2","ERRO")
         Else
             cResult := oWsdl:GetSoapResponse()
             cResult := StrTran(cResult, "&lt;", "<")
@@ -4386,20 +4394,21 @@ Static Function fnGeraBOL()
             cResult := StrTran(cResult, "&gt;", ">")
             oXml := TXmlManager():New()
             If !oXML:Parse( cResult )
-                ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                u_fnGrvLog('FinBoletoInclusaoData',cBody,cResult,oXML:Error(),'Erro gerar Boleto, IDLan: '+cIDLan,"2","ERRO")
+                cErrooWsdl := DecodeUTF8(oWsdl:cError, "cp1252")
+                ApMsgAlert(cErrooWsdl,"Erro Integracao TOTVS Corpore RM")
+                u_fnGrvLog('FinBoletoInclusaoData',cBody,cResult,cErrooWsdl,'Erro Gerar Boleto, IDLan: '+cIDLan,"2","ERRO")
             Else
-                oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
+                oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/")
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
                 IF oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:ExecuteWithXmlParamsResponse/ns1:ExecuteWithXmlParamsResult') != '1'
                     cResult := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:ExecuteWithXmlParamsResponse/ns1:ExecuteWithXmlParamsResult')
                     ApMsgAlert(cResult,"Erro Integracao TOTVS Corpore RM")
-                    u_fnGrvLog('FinBoletoInclusaoData',cBody,"",cResult,'Erro gerar Boleto, IDLan: '+cIDLan,"2","ERRO")
+                    u_fnGrvLog('FinBoletoInclusaoData',cBody,"",cResult,'Erro ao gerar Boleto, IDLan: '+cIDLan,"2","ERRO")
                 Else
                     cResult := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:ExecuteWithXmlParamsResponse/ns1:ExecuteWithXmlParamsResult')
-                    u_fnGrvLog('FinBoletoInclusaoData',cBody,cResult,"",'gerar Boleto, IDLan: '+cIDLan,"3","INCLUR")
+                    u_fnGrvLog('FinBoletoInclusaoData',cBody,cResult,"",'Gera Boleto, IDLan: '+cIDLan,"3","INCLUR")
                 EndIF
-            Endi
+            EndiF
         EndIf
     EndIF
 
@@ -4418,250 +4427,248 @@ Static Function fnCancBOL()
     Local cBody     := ""
     Local cResult   := ""
 
-    cBody := '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/">'
-    cBody += '   <soapenv:Header/>'
-    cBody += '   <soapenv:Body>'
-    cBody += '      <tot:ExecuteWithXmlParams>'
-    cBody += '         <!--Optional:-->'
-    cBody += '         <tot:ProcessServerName>FinBoletoCancelamentoData</tot:ProcessServerName>'
-    cBody += '         <!--Optional:-->'
-    cBody += '         <tot:strXmlParams><![CDATA[<?xml version="1.0" encoding="utf-16"?>'
-    cBody += '<FinBoletoParamsProc z:Id="i1" xmlns="http://www.totvs.com.br/RM/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance" xmlns:z="http://schemas.microsoft.com/2003/10/Serialization/">'
-    cBody += '  <ActionModule xmlns="http://www.totvs.com/">F</ActionModule>'
-    cBody += '  <ActionName xmlns="http://www.totvs.com/">FinBoletoCancelamentoAction</ActionName>'
-    cBody += '  <CanParallelize xmlns="http://www.totvs.com/">true</CanParallelize>'
-    cBody += '  <CanSendMail xmlns="http://www.totvs.com/">false</CanSendMail>'
-    cBody += '  <CanWaitSchedule xmlns="http://www.totvs.com/">false</CanWaitSchedule>'	
-    cBody += '  <CodUsuario xmlns="http://www.totvs.com/">'+ cUser +'</CodUsuario>'
-    cBody += '  <ConnectionId i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '  <ConnectionString i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '  <Context z:Id="i2" xmlns="http://www.totvs.com/" xmlns:a="http://www.totvs.com.br/RM/">'
-    cBody += '    <a:_params xmlns:b="http://schemas.microsoft.com/2003/10/Serialization/Arrays">'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$EXERCICIOFISCAL</b:Key>'
-    cBody += '        <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">2</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODLOCPRT</b:Key>'
-    cBody += '        <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODTIPOCURSO</b:Key>'
-    cBody += '        <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$EDUTIPOUSR</b:Key>'
-    cBody += '        <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODUNIDADEBIB</b:Key>'
-    cBody += '        <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODCOLIGADA</b:Key>'
-    cBody += '        <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">'+ cCodEmp +'</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$RHTIPOUSR</b:Key>'
-    cBody += '        <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODIGOEXTERNO</b:Key>'
-    cBody += '        <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODSISTEMA</b:Key>'
-    cBody += '        <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">T</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODUSUARIOSERVICO</b:Key>'
-    cBody += '        <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema" />'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODUSUARIO</b:Key>'
-    cBody += '        <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">'+ cUser +'</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$IDPRJ</b:Key>'
-    cBody += '        <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CHAPAFUNCIONARIO</b:Key>'
-    cBody += '        <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '      <b:KeyValueOfanyTypeanyType>'
-    cBody += '        <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODFILIAL</b:Key>'
-    cBody += '        <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">1</b:Value>'
-    cBody += '      </b:KeyValueOfanyTypeanyType>'
-    cBody += '    </a:_params>'
-    cBody += '    <a:Environment>DotNet</a:Environment>'
-    cBody += '  </Context>'
-    cBody += '  <CustomData i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '  <DisableIsolateProcess xmlns="http://www.totvs.com/">false</DisableIsolateProcess>'
-    cBody += '  <DriverType i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '  <ExecutionId xmlns="http://www.totvs.com/">28db0d79-39e4-4978-85d8-d47b7970095c</ExecutionId>'
-    cBody += '  <FailureMessage xmlns="http://www.totvs.com/">Falha na execução do processo</FailureMessage>'
-    cBody += '  <FriendlyLogs i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '  <HideProgressDialog xmlns="http://www.totvs.com/">false</HideProgressDialog>'
-    cBody += '  <HostName xmlns="http://www.totvs.com/">RECN100100655</HostName>'
-    cBody += '  <Initialized xmlns="http://www.totvs.com/">true</Initialized>'
-    cBody += '  <Ip xmlns="http://www.totvs.com/">10.0.1.4</Ip>'
-    cBody += '  <IsolateProcess xmlns="http://www.totvs.com/">false</IsolateProcess>'
-    cBody += '  <JobID xmlns="http://www.totvs.com/">'
-    cBody += '    <Children />'
-    cBody += '    <ExecID>1</ExecID>'
-    cBody += '    <ID>-1</ID>'
-    cBody += '    <IsPriorityJob>false</IsPriorityJob>'
-    cBody += '  </JobID>'
-    cBody += '  <JobServerHostName xmlns="http://www.totvs.com/">145873-core-instance-N-RM-D-C24LVE-1-0c72eWIN-CE01</JobServerHostName>'
-    cBody += '  <MasterActionName xmlns="http://www.totvs.com/">FinBoletoLanAction</MasterActionName>'
-    cBody += '  <MaximumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1000</MaximumQuantityOfPrimaryKeysPerProcess>'
-    cBody += '  <MinimumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1</MinimumQuantityOfPrimaryKeysPerProcess>'
-    cBody += '  <NetworkUser xmlns="http://www.totvs.com/">rimeson.pereira</NetworkUser>'
-    cBody += '  <NotifyEmail xmlns="http://www.totvs.com/">false</NotifyEmail>'
-    cBody += '  <NotifyEmailList i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />'
-    cBody += '  <NotifyFluig xmlns="http://www.totvs.com/">false</NotifyFluig>'
-    cBody += '  <OnlineMode xmlns="http://www.totvs.com/">false</OnlineMode>'
-    cBody += '  <PrimaryKeyList xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays">'
-    cBody += '    <a:ArrayOfanyType>'
-    cBody += '      <a:anyType i:type="b:short" xmlns:b="http://www.w3.org/2001/XMLSchema">20</a:anyType>'
-    cBody += '      <a:anyType i:type="b:int" xmlns:b="http://www.w3.org/2001/XMLSchema">344363</a:anyType>'
-    cBody += '    </a:ArrayOfanyType>'
-    cBody += '  </PrimaryKeyList>'
-    cBody += '  <PrimaryKeyNames xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays">'
-    cBody += '    <a:string>CODCOLIGADA</a:string>'
-    cBody += '    <a:string>IDBOLETO</a:string>'
-    cBody += '  </PrimaryKeyNames>'
-    cBody += '  <PrimaryKeyTableName xmlns="http://www.totvs.com/">FBOLETO</PrimaryKeyTableName>'
-    cBody += '  <ProcessName xmlns="http://www.totvs.com/">Cancelamento de Boleto</ProcessName>'
-    cBody += '  <QuantityOfSplits xmlns="http://www.totvs.com/">0</QuantityOfSplits>'
-    cBody += '  <SaveLogInDatabase xmlns="http://www.totvs.com/">true</SaveLogInDatabase>'
-    cBody += '  <SaveParamsExecution xmlns="http://www.totvs.com/">false</SaveParamsExecution>'
-    cBody += '  <ScheduleDateTime xmlns="http://www.totvs.com/">2024-11-07T17:20:22.9184144-03:00</ScheduleDateTime>'
-    cBody += '  <Scheduler xmlns="http://www.totvs.com/">JobMonitor</Scheduler>'
-    cBody += '  <SendMail xmlns="http://www.totvs.com/">false</SendMail>'
-    cBody += '  <ServerName xmlns="http://www.totvs.com/">FinBoletoCancelamentoData</ServerName>'
-    cBody += '  <ServiceInterface i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.datacontract.org/2004/07/System" />'
-    cBody += '  <ShouldParallelize xmlns="http://www.totvs.com/">false</ShouldParallelize>'
-    cBody += '  <ShowReExecuteButton xmlns="http://www.totvs.com/">true</ShowReExecuteButton>'
-    cBody += '  <StatusMessage i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '  <SuccessMessage xmlns="http://www.totvs.com/">Processo executado com sucesso</SuccessMessage>'
-    cBody += '  <SyncExecution xmlns="http://www.totvs.com/">false</SyncExecution>'
-    cBody += '  <UseJobMonitor xmlns="http://www.totvs.com/">true</UseJobMonitor>'
-    cBody += '  <UserName xmlns="http://www.totvs.com/">'+ cUser +'</UserName>'
-    cBody += '  <WaitSchedule xmlns="http://www.totvs.com/">false</WaitSchedule>'
-    cBody += '  <AlterarDtaPrazoLimite>false</AlterarDtaPrazoLimite>'
-    cBody += '  <AlterarDtaVencContraApresentacao>false</AlterarDtaVencContraApresentacao>'
-    cBody += '  <AlterarDtaVencLan>false</AlterarDtaVencLan>'
-    cBody += '  <AtualizaCamposBD>false</AtualizaCamposBD>'
-    cBody += '  <CNABAceite i:nil="true" />'
-    cBody += '  <CNABComando i:nil="true" />'
-    cBody += '  <CNABInstrucao1 i:nil="true" />'
-    cBody += '  <CNABInstrucao2 i:nil="true" />'
-    cBody += '  <CNABInstrucao3 i:nil="true" />'
-    cBody += '  <CodAplicacao i:nil="true" />'
-    cBody += '  <CodColCxa>'+ cCodColCX +'</CodColCxa>'
-    cBody += '  <CodColigada>'+ cCodEmp +'</CodColigada>'
-    cBody += '  <CodCxa i:nil="true" />'
-    cBody += '  <DataInstrucao1 i:nil="true" />'
-    cBody += '  <DataInstrucao2 i:nil="true" />'
-    cBody += '  <DataInstrucao3 i:nil="true" />'
-    cBody += '  <DataSistema>'+ ( FWTimeStamp(3, dDataBase , Time())  ) +'</DataSistema>'
-    cBody += '  <DataVencimento i:nil="true" />'
-    cBody += '  <EspecieCNAB i:nil="true" />'
-    cBody += '  <GerarBoletoParcial>false</GerarBoletoParcial>'
-    cBody += '  <IdConvenio>0</IdConvenio>'
-    cBody += '  <IdGrupoMensagem i:nil="true" />'
-    cBody += '  <LancamentosValidados>false</LancamentosValidados>'
-    cBody += '  <ListaAgrupamento>'
-    cBody += '    <FinAgrupamentoParamsProc z:Id="i3">'
-    cBody += '      <ActionModule i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ActionName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <CanParallelize xmlns="http://www.totvs.com/">false</CanParallelize>'
-    cBody += '      <CanSendMail xmlns="http://www.totvs.com/">false</CanSendMail>'
-    cBody += '      <CanWaitSchedule xmlns="http://www.totvs.com/">false</CanWaitSchedule>'
-    cBody += '      <CodUsuario i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ConnectionId i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ConnectionString i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <Context i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://www.totvs.com.br/RM/" />'
-    cBody += '      <CustomData i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <DisableIsolateProcess xmlns="http://www.totvs.com/">false</DisableIsolateProcess>'
-    cBody += '      <DriverType i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ExecutionId xmlns="http://www.totvs.com/">e73a3a2e-d920-4afb-8e0b-7be4f481be17</ExecutionId>'
-    cBody += '      <FailureMessage xmlns="http://www.totvs.com/">Falha na execução do processo</FailureMessage>'
-    cBody += '      <FriendlyLogs i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <HideProgressDialog xmlns="http://www.totvs.com/">false</HideProgressDialog>'
-    cBody += '      <HostName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <Initialized xmlns="http://www.totvs.com/">false</Initialized>'
-    cBody += '      <Ip i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <IsolateProcess xmlns="http://www.totvs.com/">false</IsolateProcess>'
-    cBody += '      <JobID xmlns="http://www.totvs.com/">'
-    cBody += '        <Children />'
-    cBody += '        <ExecID>-1</ExecID>'
-    cBody += '        <ID>-1</ID>'
-    cBody += '        <IsPriorityJob>false</IsPriorityJob>'
-    cBody += '      </JobID>'
-    cBody += '      <JobServerHostName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <MasterActionName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <MaximumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1000</MaximumQuantityOfPrimaryKeysPerProcess>'
-    cBody += '      <MinimumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1</MinimumQuantityOfPrimaryKeysPerProcess>'
-    cBody += '      <NetworkUser i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <NotifyEmail xmlns="http://www.totvs.com/">false</NotifyEmail>'
-    cBody += '      <NotifyEmailList i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />'
-    cBody += '      <NotifyFluig xmlns="http://www.totvs.com/">false</NotifyFluig>'
-    cBody += '      <OnlineMode xmlns="http://www.totvs.com/">false</OnlineMode>'
-    cBody += '      <PrimaryKeyList xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />'
-    cBody += '      <PrimaryKeyNames i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />'
-    cBody += '      <PrimaryKeyTableName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ProcessName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <QuantityOfSplits xmlns="http://www.totvs.com/">0</QuantityOfSplits>'
-    cBody += '      <SaveLogInDatabase xmlns="http://www.totvs.com/">true</SaveLogInDatabase>'
-    cBody += '      <SaveParamsExecution xmlns="http://www.totvs.com/">false</SaveParamsExecution>'
-    cBody += '      <ScheduleDateTime xmlns="http://www.totvs.com/">2024-11-07T17:19:34.8168977-03:00</ScheduleDateTime>'
-    cBody += '      <Scheduler xmlns="http://www.totvs.com/">JobMonitor</Scheduler>'
-    cBody += '      <SendMail xmlns="http://www.totvs.com/">false</SendMail>'
-    cBody += '      <ServerName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <ServiceInterface i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.datacontract.org/2004/07/System" />'
-    cBody += '      <ShouldParallelize xmlns="http://www.totvs.com/">false</ShouldParallelize>'
-    cBody += '      <ShowReExecuteButton xmlns="http://www.totvs.com/">true</ShowReExecuteButton>'
-    cBody += '      <StatusMessage i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <SuccessMessage xmlns="http://www.totvs.com/">Processo executado com sucesso</SuccessMessage>'
-    cBody += '      <SyncExecution xmlns="http://www.totvs.com/">false</SyncExecution>'
-    cBody += '      <UseJobMonitor xmlns="http://www.totvs.com/">true</UseJobMonitor>'
-    cBody += '      <UserName i:nil="true" xmlns="http://www.totvs.com/" />'
-    cBody += '      <WaitSchedule xmlns="http://www.totvs.com/">false</WaitSchedule>'
-    cBody += '      <CodBarras i:nil="true" />'
-    cBody += '      <CodCliFor i:nil="true" />'
-    cBody += '      <CodColCliFor>'+ cCodCliFo +'</CodColCliFor>'
-    cBody += '      <CodColigada>'+ cCodEmp +'</CodColigada>'
-    cBody += '      <ContraApresentacao>false</ContraApresentacao>'
-    cBody += '      <FormaPagamento i:nil="true" />'
-    cBody += '      <IPTE i:nil="true" />'
-    cBody += '      <IdBoleto>'+ cIDBoleto +'</IdBoleto>'
-    cBody += '      <IdConvenio>0</IdConvenio>'
-    cBody += '      <IdLan>0</IdLan>'
-    cBody += '      <NomeCliFor i:nil="true" />'
-    cBody += '      <NossoNumero i:nil="true" />'
-    cBody += '      <NumeroDocumento i:nil="true" />'
-    cBody += '      <SegundoNumero i:nil="true" />'
-    cBody += '      <StatusBoleto>EmAberto</StatusBoleto>'
-    cBody += '      <TipoBoleto>BoletoCobranca</TipoBoleto>'
-    cBody += '      <ValorBoleto>0</ValorBoleto>'
-    cBody += '      <Vencimento>0001-01-01T00:00:00</Vencimento>'
-    cBody += '    </FinAgrupamentoParamsProc>'
-    cBody += '  </ListaAgrupamento>'
-    cBody += '  <OpcaoGeracaoBoleto>UmBoletoParaCadaLancamentos</OpcaoGeracaoBoleto>'
-    cBody += '  <QtdeDiasInstrucao1 i:nil="true" />'
-    cBody += '  <QtdeDiasInstrucao2 i:nil="true" />'
-    cBody += '  <QtdeDiasInstrucao3 i:nil="true" />'
-    cBody += '  <RegistrarOnLineBoleto>false</RegistrarOnLineBoleto>'
-    cBody += '  <TipoBoleto>WCF</TipoBoleto>'
-    cBody += '  <ValorParcial i:nil="true" />'
-    cBody += '  <listaLan />'
-    cBody += '</FinBoletoParamsProc>]]></tot:strXmlParams>'
-    cBody += '      </tot:ExecuteWithXmlParams>'
-    cBody += '   </soapenv:Body>'
-    cBody += '</soapenv:Envelope>'
+    cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/">'
+    cBody += ' <soapenv:Header/>'
+    cBody += ' <soapenv:Body>'
+    cBody += ' <tot:ExecuteWithXmlParams>'
+    cBody += ' <tot:ProcessServerName>FinBoletoCancelamentoData</tot:ProcessServerName>'
+    cBody += ' <tot:strXmlParams><![CDATA[<?xml version="1.0" encoding="utf-16"?>'
+    cBody += ' <FinBoletoParamsProc z:Id="i1" xmlns="http://www.totvs.com.br/RM/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance" xmlns:z="http://schemas.microsoft.com/2003/10/Serialization/">'
+    cBody += ' <ActionModule xmlns="http://www.totvs.com/">F</ActionModule>'
+    cBody += ' <ActionName xmlns="http://www.totvs.com/">FinBoletoCancelamentoAction</ActionName>'
+    cBody += ' <CanParallelize xmlns="http://www.totvs.com/">true</CanParallelize>'
+    cBody += ' <CanSendMail xmlns="http://www.totvs.com/">false</CanSendMail>'
+    cBody += ' <CanWaitSchedule xmlns="http://www.totvs.com/">false</CanWaitSchedule>'	
+    cBody += ' <CodUsuario xmlns="http://www.totvs.com/">'+ cUser +'</CodUsuario>'
+    cBody += ' <ConnectionId i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <ConnectionString i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <Context z:Id="i2" xmlns="http://www.totvs.com/" xmlns:a="http://www.totvs.com.br/RM/">'
+    cBody += ' <a:_params xmlns:b="http://schemas.microsoft.com/2003/10/Serialization/Arrays">'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$EXERCICIOFISCAL</b:Key>'
+    cBody += ' <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">2</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODLOCPRT</b:Key>'
+    cBody += ' <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODTIPOCURSO</b:Key>'
+    cBody += ' <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$EDUTIPOUSR</b:Key>'
+    cBody += ' <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODUNIDADEBIB</b:Key>'
+    cBody += ' <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODCOLIGADA</b:Key>'
+    cBody += ' <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">'+ cCodEmp +'</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$RHTIPOUSR</b:Key>'
+    cBody += ' <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODIGOEXTERNO</b:Key>'
+    cBody += ' <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODSISTEMA</b:Key>'
+    cBody += ' <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">T</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODUSUARIOSERVICO</b:Key>'
+    cBody += ' <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema" />'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODUSUARIO</b:Key>'
+    cBody += ' <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">'+ cUser +'</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$IDPRJ</b:Key>'
+    cBody += ' <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CHAPAFUNCIONARIO</b:Key>'
+    cBody += ' <b:Value i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">-1</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:KeyValueOfanyTypeanyType>'
+    cBody += ' <b:Key i:type="c:string" xmlns:c="http://www.w3.org/2001/XMLSchema">$CODFILIAL</b:Key>'
+    cBody += ' <b:Value i:type="c:int" xmlns:c="http://www.w3.org/2001/XMLSchema">1</b:Value>'
+    cBody += ' </b:KeyValueOfanyTypeanyType>'
+    cBody += ' </a:_params>'
+    cBody += ' <a:Environment>DotNet</a:Environment>'
+    cBody += ' </Context>'
+    cBody += ' <CustomData i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <DisableIsolateProcess xmlns="http://www.totvs.com/">false</DisableIsolateProcess>'
+    cBody += ' <DriverType i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <ExecutionId xmlns="http://www.totvs.com/">28db0d79-39e4-4978-85d8-d47b7970095c</ExecutionId>'
+    cBody += ' <FailureMessage xmlns="http://www.totvs.com/">Falha na execucao do processo</FailureMessage>'
+    cBody += ' <FriendlyLogs i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <HideProgressDialog xmlns="http://www.totvs.com/">false</HideProgressDialog>'
+    cBody += ' <HostName xmlns="http://www.totvs.com/">RECN100100655</HostName>'
+    cBody += ' <Initialized xmlns="http://www.totvs.com/">true</Initialized>'
+    cBody += ' <Ip xmlns="http://www.totvs.com/">10.0.1.4</Ip>'
+    cBody += ' <IsolateProcess xmlns="http://www.totvs.com/">false</IsolateProcess>'
+    cBody += ' <JobID xmlns="http://www.totvs.com/">'
+    cBody += ' <Children />'
+    cBody += ' <ExecID>1</ExecID>'
+    cBody += ' <ID>-1</ID>'
+    cBody += ' <IsPriorityJob>false</IsPriorityJob>'
+    cBody += ' </JobID>'
+    cBody += ' <JobServerHostName xmlns="http://www.totvs.com/">145873-core-instance-N-RM-D-C24LVE-1-0c72eWIN-CE01</JobServerHostName>'
+    cBody += ' <MasterActionName xmlns="http://www.totvs.com/">FinBoletoLanAction</MasterActionName>'
+    cBody += ' <MaximumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1000</MaximumQuantityOfPrimaryKeysPerProcess>'
+    cBody += ' <MinimumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1</MinimumQuantityOfPrimaryKeysPerProcess>'
+    cBody += ' <NetworkUser xmlns="http://www.totvs.com/">rimeson.pereira</NetworkUser>'
+    cBody += ' <NotifyEmail xmlns="http://www.totvs.com/">false</NotifyEmail>'
+    cBody += ' <NotifyEmailList i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />'
+    cBody += ' <NotifyFluig xmlns="http://www.totvs.com/">false</NotifyFluig>'
+    cBody += ' <OnlineMode xmlns="http://www.totvs.com/">false</OnlineMode>'
+    cBody += ' <PrimaryKeyList xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays">'
+    cBody += ' <a:ArrayOfanyType>'
+    cBody += ' <a:anyType i:type="b:short" xmlns:b="http://www.w3.org/2001/XMLSchema">20</a:anyType>'
+    cBody += ' <a:anyType i:type="b:int" xmlns:b="http://www.w3.org/2001/XMLSchema">344363</a:anyType>'
+    cBody += ' </a:ArrayOfanyType>'
+    cBody += ' </PrimaryKeyList>'
+    cBody += ' <PrimaryKeyNames xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays">'
+    cBody += ' <a:string>CODCOLIGADA</a:string>'
+    cBody += ' <a:string>IDBOLETO</a:string>'
+    cBody += ' </PrimaryKeyNames>'
+    cBody += ' <PrimaryKeyTableName xmlns="http://www.totvs.com/">FBOLETO</PrimaryKeyTableName>'
+    cBody += ' <ProcessName xmlns="http://www.totvs.com/">Cancelamento de Boleto</ProcessName>'
+    cBody += ' <QuantityOfSplits xmlns="http://www.totvs.com/">0</QuantityOfSplits>'
+    cBody += ' <SaveLogInDatabase xmlns="http://www.totvs.com/">true</SaveLogInDatabase>'
+    cBody += ' <SaveParamsExecution xmlns="http://www.totvs.com/">false</SaveParamsExecution>'
+    cBody += ' <ScheduleDateTime xmlns="http://www.totvs.com/">2024-11-07T17:20:22.9184144-03:00</ScheduleDateTime>'
+    cBody += ' <Scheduler xmlns="http://www.totvs.com/">JobMonitor</Scheduler>'
+    cBody += ' <SendMail xmlns="http://www.totvs.com/">false</SendMail>'
+    cBody += ' <ServerName xmlns="http://www.totvs.com/">FinBoletoCancelamentoData</ServerName>'
+    cBody += ' <ServiceInterface i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.datacontract.org/2004/07/System" />'
+    cBody += ' <ShouldParallelize xmlns="http://www.totvs.com/">false</ShouldParallelize>'
+    cBody += ' <ShowReExecuteButton xmlns="http://www.totvs.com/">true</ShowReExecuteButton>'
+    cBody += ' <StatusMessage i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <SuccessMessage xmlns="http://www.totvs.com/">Processo executado com sucesso</SuccessMessage>'
+    cBody += ' <SyncExecution xmlns="http://www.totvs.com/">false</SyncExecution>'
+    cBody += ' <UseJobMonitor xmlns="http://www.totvs.com/">true</UseJobMonitor>'
+    cBody += ' <UserName xmlns="http://www.totvs.com/">'+ cUser +'</UserName>'
+    cBody += ' <WaitSchedule xmlns="http://www.totvs.com/">false</WaitSchedule>'
+    cBody += ' <AlterarDtaPrazoLimite>false</AlterarDtaPrazoLimite>'
+    cBody += ' <AlterarDtaVencContraApresentacao>false</AlterarDtaVencContraApresentacao>'
+    cBody += ' <AlterarDtaVencLan>false</AlterarDtaVencLan>'
+    cBody += ' <AtualizaCamposBD>false</AtualizaCamposBD>'
+    cBody += ' <CNABAceite i:nil="true" />'
+    cBody += ' <CNABComando i:nil="true" />'
+    cBody += ' <CNABInstrucao1 i:nil="true" />'
+    cBody += ' <CNABInstrucao2 i:nil="true" />'
+    cBody += ' <CNABInstrucao3 i:nil="true" />'
+    cBody += ' <CodAplicacao i:nil="true" />'
+    cBody += ' <CodColCxa>'+ cCodColCX +'</CodColCxa>'
+    cBody += ' <CodColigada>'+ cCodEmp +'</CodColigada>'
+    cBody += ' <CodCxa i:nil="true" />'
+    cBody += ' <DataInstrucao1 i:nil="true" />'
+    cBody += ' <DataInstrucao2 i:nil="true" />'
+    cBody += ' <DataInstrucao3 i:nil="true" />'
+    cBody += ' <DataSistema>'+ ( FWTimeStamp(3, dDataBase , Time())  ) +'</DataSistema>'
+    cBody += ' <DataVencimento i:nil="true" />'
+    cBody += ' <EspecieCNAB i:nil="true" />'
+    cBody += ' <GerarBoletoParcial>false</GerarBoletoParcial>'
+    cBody += ' <IdConvenio>0</IdConvenio>'
+    cBody += ' <IdGrupoMensagem i:nil="true" />'
+    cBody += ' <LancamentosValidados>false</LancamentosValidados>'
+    cBody += ' <ListaAgrupamento>'
+    cBody += ' <FinAgrupamentoParamsProc z:Id="i3">'
+    cBody += ' <ActionModule i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <ActionName i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <CanParallelize xmlns="http://www.totvs.com/">false</CanParallelize>'
+    cBody += ' <CanSendMail xmlns="http://www.totvs.com/">false</CanSendMail>'
+    cBody += ' <CanWaitSchedule xmlns="http://www.totvs.com/">false</CanWaitSchedule>'
+    cBody += ' <CodUsuario i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <ConnectionId i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <ConnectionString i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <Context i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://www.totvs.com.br/RM/" />'
+    cBody += ' <CustomData i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <DisableIsolateProcess xmlns="http://www.totvs.com/">false</DisableIsolateProcess>'
+    cBody += ' <DriverType i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <ExecutionId xmlns="http://www.totvs.com/">e73a3a2e-d920-4afb-8e0b-7be4f481be17</ExecutionId>'
+    cBody += ' <FailureMessage xmlns="http://www.totvs.com/">Falha na execucao do processo</FailureMessage>'
+    cBody += ' <FriendlyLogs i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <HideProgressDialog xmlns="http://www.totvs.com/">false</HideProgressDialog>'
+    cBody += ' <HostName i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <Initialized xmlns="http://www.totvs.com/">false</Initialized>'
+    cBody += ' <Ip i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <IsolateProcess xmlns="http://www.totvs.com/">false</IsolateProcess>'
+    cBody += ' <JobID xmlns="http://www.totvs.com/">'
+    cBody += ' <Children />'
+    cBody += ' <ExecID>-1</ExecID>'
+    cBody += ' <ID>-1</ID>'
+    cBody += ' <IsPriorityJob>false</IsPriorityJob>'
+    cBody += ' </JobID>'
+    cBody += ' <JobServerHostName i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <MasterActionName i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <MaximumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1000</MaximumQuantityOfPrimaryKeysPerProcess>'
+    cBody += ' <MinimumQuantityOfPrimaryKeysPerProcess xmlns="http://www.totvs.com/">1</MinimumQuantityOfPrimaryKeysPerProcess>'
+    cBody += ' <NetworkUser i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <NotifyEmail xmlns="http://www.totvs.com/">false</NotifyEmail>'
+    cBody += ' <NotifyEmailList i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />'
+    cBody += ' <NotifyFluig xmlns="http://www.totvs.com/">false</NotifyFluig>'
+    cBody += ' <OnlineMode xmlns="http://www.totvs.com/">false</OnlineMode>'
+    cBody += ' <PrimaryKeyList xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />'
+    cBody += ' <PrimaryKeyNames i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />'
+    cBody += ' <PrimaryKeyTableName i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <ProcessName i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <QuantityOfSplits xmlns="http://www.totvs.com/">0</QuantityOfSplits>'
+    cBody += ' <SaveLogInDatabase xmlns="http://www.totvs.com/">true</SaveLogInDatabase>'
+    cBody += ' <SaveParamsExecution xmlns="http://www.totvs.com/">false</SaveParamsExecution>'
+    cBody += ' <ScheduleDateTime xmlns="http://www.totvs.com/">2024-11-07T17:19:34.8168977-03:00</ScheduleDateTime>'
+    cBody += ' <Scheduler xmlns="http://www.totvs.com/">JobMonitor</Scheduler>'
+    cBody += ' <SendMail xmlns="http://www.totvs.com/">false</SendMail>'
+    cBody += ' <ServerName i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <ServiceInterface i:nil="true" xmlns="http://www.totvs.com/" xmlns:a="http://schemas.datacontract.org/2004/07/System" />'
+    cBody += ' <ShouldParallelize xmlns="http://www.totvs.com/">false</ShouldParallelize>'
+    cBody += ' <ShowReExecuteButton xmlns="http://www.totvs.com/">true</ShowReExecuteButton>'
+    cBody += ' <StatusMessage i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <SuccessMessage xmlns="http://www.totvs.com/">Processo executado com sucesso</SuccessMessage>'
+    cBody += ' <SyncExecution xmlns="http://www.totvs.com/">false</SyncExecution>'
+    cBody += ' <UseJobMonitor xmlns="http://www.totvs.com/">true</UseJobMonitor>'
+    cBody += ' <UserName i:nil="true" xmlns="http://www.totvs.com/" />'
+    cBody += ' <WaitSchedule xmlns="http://www.totvs.com/">false</WaitSchedule>'
+    cBody += ' <CodBarras i:nil="true" />'
+    cBody += ' <CodCliFor i:nil="true" />'
+    cBody += ' <CodColCliFor>'+ cCodCliFo +'</CodColCliFor>'
+    cBody += ' <CodColigada>'+ cCodEmp +'</CodColigada>'
+    cBody += ' <ContraApresentacao>false</ContraApresentacao>'
+    cBody += ' <FormaPagamento i:nil="true" />'
+    cBody += ' <IPTE i:nil="true" />'
+    cBody += ' <IdBoleto>'+ cIDBoleto +'</IdBoleto>'
+    cBody += ' <IdConvenio>0</IdConvenio>'
+    cBody += ' <IdLan>0</IdLan>'
+    cBody += ' <NomeCliFor i:nil="true" />'
+    cBody += ' <NossoNumero i:nil="true" />'
+    cBody += ' <NumeroDocumento i:nil="true" />'
+    cBody += ' <SegundoNumero i:nil="true" />'
+    cBody += ' <StatusBoleto>EmAberto</StatusBoleto>'
+    cBody += ' <TipoBoleto>BoletoCobranca</TipoBoleto>'
+    cBody += ' <ValorBoleto>0</ValorBoleto>'
+    cBody += ' <Vencimento>0001-01-01T00:00:00</Vencimento>'
+    cBody += ' </FinAgrupamentoParamsProc>'
+    cBody += ' </ListaAgrupamento>'
+    cBody += ' <OpcaoGeracaoBoleto>UmBoletoParaCadaLancamentos</OpcaoGeracaoBoleto>'
+    cBody += ' <QtdeDiasInstrucao1 i:nil="true" />'
+    cBody += ' <QtdeDiasInstrucao2 i:nil="true" />'
+    cBody += ' <QtdeDiasInstrucao3 i:nil="true" />'
+    cBody += ' <RegistrarOnLineBoleto>false</RegistrarOnLineBoleto>'
+    cBody += ' <TipoBoleto>WCF</TipoBoleto>'
+    cBody += ' <ValorParcial i:nil="true" />'
+    cBody += ' <listaLan />'
+    cBody += ' </FinBoletoParamsProc>]]></tot:strXmlParams>'
+    cBody += ' </tot:ExecuteWithXmlParams>'
+    cBody += ' </soapenv:Body>'
+    cBody += ' </soapenv:Envelope>'
 
     oWsdl := TWsdlManager():New()
     oWsdl:nTimeout         := 120
@@ -4673,7 +4680,7 @@ Static Function fnCancBOL()
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("ExecuteWithXmlParams")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-        u_fnGrvLog('FinBoletoParamsProc',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),'Erro Cancela Boleto, IDLan: '+cIDLan,"2","ERRO")
+        u_fnGrvLog('FinBoletoCancelamentoData',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),'Erro Cancela Boleto, IDLan: '+cIDLan,"2","ERRO")
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
@@ -4682,7 +4689,7 @@ Static Function fnCancBOL()
 
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            u_fnGrvLog('FinBoletoParamsProc',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),'Erro Cancela Boleto, IDLan: '+cIDLan,"2","ERRO")
+            u_fnGrvLog('FinBoletoCancelamentoData',cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),'Erro Cancela Boleto, IDLan: '+cIDLan,"2","ERRO")
         Else
             cResult := oWsdl:GetSoapResponse()
             cResult := StrTran(cResult, "&lt;", "<")
@@ -4692,7 +4699,7 @@ Static Function fnCancBOL()
 
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                u_fnGrvLog('FinBoletoParamsProc',cBody,"",oXML:Error(),'Erro Cancela Boleto, IDLan: '+cIDLan,"2","ERRO")
+                u_fnGrvLog('FinBoletoCancelamentoData',cBody,"",oXML:Error(),'Erro Cancela Boleto, IDLan: '+cIDLan,"2","ERRO")
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -4700,10 +4707,10 @@ Static Function fnCancBOL()
                 IF oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:ExecuteWithXmlParamsResponse/ns1:ExecuteWithXmlParamsResult') <> '1'
                     cResult := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:ExecuteWithXmlParamsResponse/ns1:ExecuteWithXmlParamsResult')
                     ApMsgAlert(cResult,"Erro Integracao TOTVS Corpore RM")
-                    u_fnGrvLog('FinBoletoParamsProc',cBody,"",cResult,'Erro Cancela Boleto, IDLan: '+cIDLan,"2","ERRO")
+                    u_fnGrvLog('FinBoletoCancelamentoData',cBody,"",cResult,'Erro Cancela Boleto, IDLan: '+cIDLan,"2","ERRO")
                 Else
                     cResult := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:ExecuteWithXmlParamsResponse/ns1:ExecuteWithXmlParamsResult')
-                    u_fnGrvLog('FinBoletoParamsProc',cBody,cResult,"",'Cancela Boleto, IDLan: '+cIDLan,"5","CANCELAMENTO")
+                    u_fnGrvLog('FinBoletoCancelamentoData',cBody,cResult,"",'Cancela Boleto, IDLan: '+cIDLan,"5","CANCELAMENTO")
                 EndIF 
             
             Endif
@@ -4722,51 +4729,50 @@ Gera informacoes do Cartao Credito/Debito e PIX no Corpore RM
 Static Function fnCartPIX()
     Local oWsdl as Object
     Local oXml as Object 
-    Local cPath   := "/wsProcess/MEX?wsdl"
+    Local cPath   := "/wsDataServer/MEX?wsdl"
     Local cBody   := ""
     Local cResult := ""
 
-    cBody := '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"'
-    cBody += 'xmlns:tot="http://www.totvs.com/">'
-    cBody += '<soapenv:Header/>'
-    cBody += '<soapenv:Body>'
-    cBody += '<tot:SaveRecord>'
-    cBody += '<tot:DataServerName>RMSPRJ4168192Server</tot:DataServerName>'
-    cBody += '<tot:XML><![CDATA[<PRJ4168192>'
-    cBody += '<ZMDINTEGRACAOPDV>'
-    cBody += '<IDINTEGRACAO>-1</IDINTEGRACAO>'
-    cBody += '<CODCOLIGADA>'+ cCodEmp +'</CODCOLIGADA>'
-    cBody += '<IDMODELO>'+ AllTrim((_cAlias)->AE_XMODELO) +'</IDMODELO>'
-    cBody += '<CODAFILIACAO>totvs_pdv_inetegrador</CODAFILIACAO>'
-    cBody += '<CANALPAGAMENTO>1</CANALPAGAMENTO>'
-    cBody += '<IDPROCESSO>'+ FWUUIDV1() +'</IDPROCESSO>'
-    cBody += '<BANDEIRA>'+  (_cAlias)->AE_XCODBAN +'</BANDEIRA>'
-    cBody += '<CODRESPOSTA></CODRESPOSTA>'
-    cBody += '<DATAHORA>'+ FWTimeStamp(3, dDataVenc, cHoraVenc) +'</DATAHORA>'
-    cBody += '<VALORPAGO>'+ cValor +'</VALORPAGO>'
-    cBody += '<IDSTATUS>6</IDSTATUS>'
-    cBody += '<NUMPARCELAS>'+ AllTrim((_cAlias)->L4_PARCTEF) +'</NUMPARCELAS>'
-    cBody += '<MEIOPAGTO>'+ AllTrim((_cAlias)->AE_XMEIOPG) +'</MEIOPAGTO>'
-    cBody += '<IDCHECKOUT></IDCHECKOUT>'
-    cBody += '<CODAUTORIZACAO>'+ AllTrim((_cAlias)->L4_AUTORIZ) +'</CODAUTORIZACAO>'
-    cBody += '<NSU>'+ AllTrim((_cAlias)->L4_NSUTEF) +'</NSU>'
-    cBody += '<QRCODEPIX>'+ '' +'</QRCODEPIX>' //PIX
-    cBody += '<QRCODEIMGPIX>'+ '' +'</QRCODEIMGPIX>' //PIX
-    cBody += '<CODREDEAUTORIZADA></CODREDEAUTORIZADA>'
-    cBody += '<IDPAGAMENTO>1</IDPAGAMENTO>'
-    cBody += '<IDBOLETO>'+ cIDBoleto +'</IDBOLETO>'
-    cBody += '<IDLAN>'+ cIDLan +'</IDLAN>'
-    cBody += '<REQUESTID></REQUESTID>'
-    cBody += '<OBSERVACAO>'+ cHist +'</OBSERVACAO>'
-    cBody += '<MENSAGEM>INCLUSAO</MENSAGEM>'
-    cBody += '<PROCESSAMENTO>0</PROCESSAMENTO>'
-    cBody += '</ZMDINTEGRACAOPDV>'
-    cBody += '</PRJ4168192>]]></tot:XML>'
-    cBody += '<!--Optional:-->'
-    cBody += '<tot:Contexto>CODCOLIGADA='+ cCodEmp +';CODSISTEMA=F</tot:Contexto>'
-    cBody += '</tot:SaveRecord>'
-    cBody += '</soapenv:Body>'
-    cBody += '</soapenv:Envelope>'
+    cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"'
+    cBody += ' xmlns:tot="http://www.totvs.com/">'
+    cBody += ' <soapenv:Header/>'
+    cBody += ' <soapenv:Body>'
+    cBody += ' <tot:SaveRecord>'
+    cBody += ' <tot:DataServerName>RMSPRJ4168192Server</tot:DataServerName>'
+    cBody += ' <tot:XML><![CDATA[<PRJ4168192>'
+    cBody += ' <ZMDINTEGRACAOPDV>'
+    cBody += ' <IDINTEGRACAO>-1</IDINTEGRACAO>'
+    cBody += ' <CODCOLIGADA>'+ cCodEmp +'</CODCOLIGADA>'
+    cBody += ' <IDMODELO>'+ AllTrim((_cAlias)->AE_XMODELO) +'</IDMODELO>'
+    cBody += ' <CODAFILIACAO>totvs_pdv_inetegrador</CODAFILIACAO>'
+    cBody += ' <CANALPAGAMENTO>1</CANALPAGAMENTO>'
+    cBody += ' <IDPROCESSO>'+ FWUUIDV1() +'</IDPROCESSO>'
+    cBody += ' <BANDEIRA>'+ AllTrim((_cAlias)->AE_XCODBAN) +'</BANDEIRA>'
+    cBody += ' <CODRESPOSTA></CODRESPOSTA>'
+    cBody += ' <DATAHORA>'+ FWTimeStamp(3, dDataVenc, cHoraVenc) +'</DATAHORA>'
+    cBody += ' <VALORPAGO>'+ StrTran(cValor,".",",") +'</VALORPAGO>'
+    cBody += ' <IDSTATUS>6</IDSTATUS>'
+    cBody += ' <NUMPARCELAS>'+ StrZero(nParcela,2) +'</NUMPARCELAS>'
+    cBody += ' <MEIOPAGTO>'+ AllTrim((_cAlias)->AE_XMEIOPG) +'</MEIOPAGTO>'
+    cBody += ' <IDCHECKOUT></IDCHECKOUT>'
+    cBody += ' <CODAUTORIZACAO>'+ AllTrim((_cAlias)->L4_AUTORIZ) +'</CODAUTORIZACAO>'
+    cBody += ' <NSU>'+ AllTrim((_cAlias)->L4_NSUTEF) +'</NSU>'
+    cBody += ' <QRCODEPIX></QRCODEPIX>' //PIX
+    cBody += ' <QRCODEIMGPIX></QRCODEIMGPIX>' //PIX
+    cBody += ' <CODREDEAUTORIZADA></CODREDEAUTORIZADA>'
+    cBody += ' <IDPAGAMENTO>1</IDPAGAMENTO>'
+    cBody += ' <IDBOLETO>'+ cIDBoleto +'</IDBOLETO>'
+    cBody += ' <IDLAN>'+ cIDLan +'</IDLAN>'
+    cBody += ' <REQUESTID></REQUESTID>'
+    cBody += ' <OBSERVACAO>'+ cHist +'</OBSERVACAO>'
+    cBody += ' <MENSAGEM>INCLUSAO</MENSAGEM>'
+    cBody += ' <PROCESSAMENTO>0</PROCESSAMENTO>'
+    cBody += ' </ZMDINTEGRACAOPDV>'
+    cBody += ' </PRJ4168192>]]></tot:XML>'
+    cBody += ' <tot:Contexto>CODCOLIGADA='+ cCodEmp +';CODSISTEMA=F</tot:Contexto>'
+    cBody += ' </tot:SaveRecord>'
+    cBody += ' </soapenv:Body>'
+    cBody += ' </soapenv:Envelope>'
     oWsdl := TWsdlManager():New()
     oWsdl:nTimeout         := 120
     oWsdl:lSSLInsecure     := .T.
@@ -4777,13 +4783,13 @@ Static Function fnCartPIX()
     
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("SaveRecord")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-        u_fnGrvLog('RMSPRJ4168192Server',cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),'Erro gerar Cartao/PIX, IDLan: '+cIDLan,"2","ERRO")
+        u_fnGrvLog('RMSPRJ4168192Server',cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),'Erro ao gerar Cartao/PIX, IDLan: '+cIDLan,"2","ERRO")
     Else
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
         cBody := AllTrim(cBody)
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
-            u_fnGrvLog('RMSPRJ4168192Server',cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),'Erro gera Cartao/PIX, IDLan: '+cIDLan,"2","ERRO")
+            u_fnGrvLog('RMSPRJ4168192Server',cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),'Erro ao gera Cartao/PIX, IDLan: '+cIDLan,"2","ERRO")
         Else
             cResult := oWsdl:GetSoapResponse()
             cResult := StrTran(cResult, "&lt;", "<")
@@ -4792,17 +4798,17 @@ Static Function fnCartPIX()
             oXml := TXmlManager():New()
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
-                u_fnGrvLog('RMSPRJ4168192Server',cBody,cResult,oXML:Error(),'Erro gera Cartao/PIX, IDLan: '+cIDLan,"2","ERRO")
+                u_fnGrvLog('RMSPRJ4168192Server',cBody,cResult,oXML:Error(),'Erro ao gera Cartao/PIX, IDLan: '+cIDLan,"2","ERRO")
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
-                IF oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult') != '1'
+                IF oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult') <= '0'
                     cResult := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult')
                     ApMsgAlert(cResult,"Erro Integracao TOTVS Corpore RM")
-                    u_fnGrvLog('RMSPRJ4168192Server',cBody,"",cResult,'Erro gera Cartao/PIX, IDLan: '+cIDLan,"2","ERRO")
+                    u_fnGrvLog('RMSPRJ4168192Server',cBody,"",cResult,'Erro ao gera Cartao/PIX, IDLan: '+cIDLan,"2","ERRO")
                 Else
                     cResult := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult')
-                    u_fnGrvLog('RMSPRJ4168192Server',cBody,cResult,"",'gera Cartao/PIX, IDLan: '+cIDLan,"3","INCLUR")
+                    u_fnGrvLog('RMSPRJ4168192Server',cBody,cResult,"",'Gera Cartao/PIX, IDLan: '+cIDLan,"3","INCLUR")
                 EndIF
             Endi
         EndIf
@@ -4819,29 +4825,30 @@ Cancela o lancamento de Cartao Credito/Debito e PIX no Corpore RM
 Static Function fnCancCartPIX()
     Local oWsdl as Object
     Local oXml as Object 
-    Local cPath   := "/wsProcess/MEX?wsdl"
+    Local cPath   := "/wsDataServer/MEX?wsdl"
     Local cBody   := ""
     Local cResult := ""
+    Local lRetCanc := .F.
 
-    cBody := '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"'
-    cBody += 'xmlns:tot="http://www.totvs.com/">'
-    cBody += '<soapenv:Header/>'
-    cBody += '<soapenv:Body>'
-    cBody += '<tot:SaveRecord>'
-    cBody += '<tot:DataServerName>RMSPRJ4168192Server</tot:DataServerName>'
-    cBody += '<tot:XML><![CDATA[<PRJ4168192>'
-    cBody += '<ZMDINTEGRACAOPDV>'
-    cBody += '<IDINTEGRACAO>'+ cIDInteg +'</IDINTEGRACAO>'
-    cBody += '<CODCOLIGADA>'+ cCodEmp +'</CODCOLIGADA>'
-    cBody += '<PROCESSAMENTO>'+ cIDProce +'</PROCESSAMENTO>'
-    cBody += '<MENSAGEM>CANCELAMENTO</MENSAGEM>'
-    cBody += '<OBSERVACAO>Cancelamento da venda</OBSERVACAO>'
-    cBody += '</ZMDINTEGRACAOPDV>'
-    cBody += '</PRJ4168192>]]></tot:XML>'
-    cBody += '<tot:Contexto>CODCOLIGADA='+ cCodEmp +';CODSISTEMA=F</tot:Contexto>'
-    cBody += '</tot:SaveRecord>'
-    cBody += '</soapenv:Body>'
-    cBody += '</soapenv:Envelope>'
+    cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"'
+    cBody += ' xmlns:tot="http://www.totvs.com/">'
+    cBody += ' <soapenv:Header/>'
+    cBody += ' <soapenv:Body>'
+    cBody += ' <tot:SaveRecord>'
+    cBody += ' <tot:DataServerName>RMSPRJ4168192Server</tot:DataServerName>'
+    cBody += ' <tot:XML><![CDATA[<PRJ4168192>'
+    cBody += ' <ZMDINTEGRACAOPDV>'
+    cBody += ' <IDINTEGRACAO>'+ cIDInteg +'</IDINTEGRACAO>'
+    cBody += ' <CODCOLIGADA>'+ cCodEmp +'</CODCOLIGADA>'
+    cBody += ' <PROCESSAMENTO>'+ cIDProce +'</PROCESSAMENTO>'
+    cBody += ' <MENSAGEM>CANCELAMENTO</MENSAGEM>'
+    cBody += ' <OBSERVACAO>Cancelamento da venda</OBSERVACAO>'
+    cBody += ' </ZMDINTEGRACAOPDV>'
+    cBody += ' </PRJ4168192>]]></tot:XML>'
+    cBody += ' <tot:Contexto>CODCOLIGADA='+ cCodEmp +';CODSISTEMA=F</tot:Contexto>'
+    cBody += ' </tot:SaveRecord>'
+    cBody += ' </soapenv:Body>'
+    cBody += ' </soapenv:Envelope>'
     oWsdl := TWsdlManager():New()
     oWsdl:nTimeout         := 120
     oWsdl:lSSLInsecure     := .T.
@@ -4871,11 +4878,12 @@ Static Function fnCancCartPIX()
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
-                IF oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult') != '1'
+                IF oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult') <= '0'
                     cResult := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult')
                     ApMsgAlert(cResult,"Erro Integracao TOTVS Corpore RM")
                     u_fnGrvLog('RMSPRJ4168192Server',cBody,"",cResult,'Erro Cancela Cartao/PIX, IDLan: '+cIDLan,"2","ERRO")
                 Else
+                    lRetCanc := .T.
                     cResult := oXML:XPathGetNodeValue('/ns:Envelope/ns:Body/ns1:SaveRecordResponse/ns1:SaveRecordResult')
                     u_fnGrvLog('RMSPRJ4168192Server',cBody,cResult,"",'Cancela Cartao/PIX, IDLan: '+cIDLan,"3","INCLUR")
                 EndIF
@@ -4883,7 +4891,7 @@ Static Function fnCancCartPIX()
         EndIf
     EndIF
 
-Return
+Return lRetCanc
 
 //-----------------------------------------------------------------------------
 /*/{Protheus.doc} fInutNFCe
