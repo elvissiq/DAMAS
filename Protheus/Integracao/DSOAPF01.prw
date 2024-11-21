@@ -1825,11 +1825,20 @@ Static Function fEnvNFeVend()
     Local cCodColCX := ""
     Local cCodCaixa := ""
     Local cTitulo   := "Erro de Integração de Venda, Orçamento: " + SL1->L1_NUM + ", NFC-e: " + AllTrim(SL1->L1_DOC) + ", Série: " + AllTrim(SL1->L1_SERIE) + " com o TOTVS Corpore RM"
+    Local nDescont  := 0
+    Local nPerDes   := 0
 
     DBSelectArea("SL2")
     IF !SL2->(MsSeek(SL1->L1_FILIAL + SL1->L1_NUM ))
         Return
+    Else
+        While SL2->(!Eof()) .And. (SL2->L2_FILIAL + SL2->L2_NUM == SL1->L1_FILIAL + SL1->L1_NUM)
+            nDescont += SL2->L2_VALDESC
+            nPerDes  += SL2->L2_DESC
+        EndDo
     EndIF 
+    SL2->(DBGoTop())
+    SL2->(MsSeek(SL1->L1_FILIAL + SL1->L1_NUM ))
 
     DBSelectArea("SZ3")
     SZ3->(MsSeek(xFilial("SZ3") + Posicione("SB1",1,xFilial("SB1")+SL2->L2_PRODUTO,"B1_XCLAFIS")))
@@ -1865,8 +1874,8 @@ Static Function fEnvNFeVend()
     cBody += '                                  <VALOROUTROS>0,0000</VALOROUTROS> '
     cBody += '                                  <PERCENTUALFRETE>0,0000</PERCENTUALFRETE> '
     cBody += '                                  <VALORFRETE>'+ Alltrim(AlltoChar(SL1->L1_FRETE, cPicVal)) +'</VALORFRETE> '
-    cBody += '                                  <PERCENTUALDESC>'+ Alltrim(AlltoChar(SL1->L1_DESCNF, cPicVal)) +'</PERCENTUALDESC> '
-    cBody += '                                  <VALORDESC>'+ Alltrim(AlltoChar(SL1->L1_DESCONT, cPicVal)) +'</VALORDESC> '
+    cBody += '                                  <PERCENTUALDESC>'+ Alltrim(AlltoChar(SL1->L1_DESCNF + nPerDes, cPicVal)) +'</PERCENTUALDESC> '
+    cBody += '                                  <VALORDESC>'+ Alltrim(AlltoChar(SL1->L1_DESCONT + nDescont, cPicVal)) +'</VALORDESC> '
     cBody += '                                  <PERCENTUALDESP>0,0000</PERCENTUALDESP> '
     cBody += '                                  <VALORDESP>'+ Alltrim(AlltoChar(SL1->L1_DESPESA, cPicVal)) +'</VALORDESP> '
     cBody += '                                  <PERCCOMISSAO>'+ Alltrim(AlltoChar(SL1->L1_COMIS, cPicVal)) +'</PERCCOMISSAO> '
@@ -2045,8 +2054,7 @@ Static Function fEnvNFeVend()
         End
     EndIF 
     //Itens do Cupom Fiscal
-    While !SL2->(Eof()) .AND. ( SL2->L2_FILIAL  == SL1->L1_FILIAL ); 
-                        .AND. ( SL2->L2_NUM     == SL1->L1_NUM )
+    While !SL2->(Eof()) .AND. (SL2->L2_FILIAL + SL2->L2_NUM == SL1->L1_FILIAL + SL1->L1_NUM)
 
         DBSelectArea("SZ3")
         SZ3->(MsSeek(xFilial("SZ3") + Posicione("SB1",1,xFilial("SB1")+SL2->L2_PRODUTO,"B1_XCLAFIS")))
@@ -2302,11 +2310,20 @@ Static Function fEnvPedVend()
     Local cLocEstoq := SuperGetMV("MV_LOCPAD")
     Local cIDMovRet := ""
     Local cTitulo   := "Erro de Integração de Pedido de Venda com o TOTVS Corpore RM - Orçamento: " + SL1->L1_NUM
+    Local nDescont  := 0
+    Local nPerDes   := 0
 
     DBSelectArea("SL2")
     IF !SL2->(MsSeek(SL1->L1_FILIAL + SL1->L1_NUM ))
         Return
+    Else
+        While SL2->(!Eof()) .And. (SL2->L2_FILIAL + SL2->L2_NUM == SL1->L1_FILIAL + SL1->L1_NUM)
+            nDescont += SL2->L2_VALDESC
+            nPerDes  += SL2->L2_DESC
+        EndDo
     EndIF 
+    SL2->(DBGoTop())
+    SL2->(MsSeek(SL1->L1_FILIAL + SL1->L1_NUM ))
 
     cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
     cBody += '  <soapenv:Header/> '
@@ -2336,8 +2353,8 @@ Static Function fEnvPedVend()
     cBody += '                                  <VALORBRUTO>' + Alltrim(AlltoChar(SL1->L1_VALBRUT, cPicVal)) + '</VALORBRUTO> '
     cBody += '                                  <VALORLIQUIDO>' + Alltrim(AlltoChar(SL1->L1_VLRLIQ, cPicVal)) + '</VALORLIQUIDO> '
     cBody += '                                  <VALOROUTROS>0,0000</VALOROUTROS> '
-    cBody += '                                  <PERCENTUALDESC>'+ Alltrim(AlltoChar(SL1->L1_DESCNF, cPicVal)) +'</PERCENTUALDESC> '
-    cBody += '                                  <VALORDESC>'+ Alltrim(AlltoChar(SL1->L1_DESCONT, cPicVal)) +'</VALORDESC> '
+    cBody += '                                  <PERCENTUALDESC>'+ Alltrim(AlltoChar(SL1->L1_DESCNF + nPerDes, cPicVal)) +'</PERCENTUALDESC> '
+    cBody += '                                  <VALORDESC>'+ Alltrim(AlltoChar(SL1->L1_DESCONT + nDescont, cPicVal)) +'</VALORDESC> '
     cBody += '                                  <PERCENTUALDESP>0,0000</PERCENTUALDESP> '
     cBody += '                                  <VALORDESP>'+ Alltrim(AlltoChar(SL1->L1_DESPESA, cPicVal)) +'</VALORDESP> '
     cBody += '                                  <PERCCOMISSAO>'+ Alltrim(AlltoChar(SL1->L1_COMIS, cPicVal)) +'</PERCCOMISSAO> '

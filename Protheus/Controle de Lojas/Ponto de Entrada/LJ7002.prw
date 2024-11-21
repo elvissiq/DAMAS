@@ -41,19 +41,17 @@ User Function LJ7002()
     Case nOpcao == 1
       Return
     Case nOpcao == 2
-      IF !IsBlind()
-        FWAlertInfo('Vai enviar o orcamento ' + SL1->L1_NUM + ', ao RM.', 'Integracao de Venda com o TOTVS Corpore RM')
-      EndIF
       IF SL1->L1_SITUA == 'OK'
-        u_DSOAPF01("MovMovimentoTBCData")
+        If AllTrim(SL2->L2_PRODUTO) == ("VALE")
+          u_DSOAPF01("MovMovimentoPedido")  
+        Else
+          u_DSOAPF01("MovMovimentoTBCData")
+        EndIF 
       ElseIF SL1->L1_SITUA == 'FR'
         u_DSOAPF01("MovMovimentoPedido")
       EndIF 
     Case nOpcao == 3
       IF SL1->(MsSeek(xFilial("SL1") +  SL1->L1_ORCRES))
-        IF !IsBlind()
-          FWAlertInfo('Vai enviar o orcamento ' + SL1->L1_NUM + ', ao RM.', 'Integracao de Pedido de Venda com o TOTVS Corpore RM')
-        EndIF
         u_DSOAPF01("MovMovimentoPedido")
       EndIF
   End 
