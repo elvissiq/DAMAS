@@ -35,7 +35,7 @@ User Function StValPro()
 	Private nSaldo   := 0
 	Private lErIntRM := .F.
 
-	IF IsInCallStack("STBIMPORTSALE")
+	IF IsInCallStack("STBIMPORTSALE") .Or. SB1->B1_VALEPRE == "1"
 		Return lRet
 	EndIF 
 

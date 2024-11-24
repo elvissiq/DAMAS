@@ -34,15 +34,24 @@ Nenhum
 User Function LJ7002()
   Local aPEArea  := FWGetArea()
   Local aAreaSL1 := SL1->(FWGetArea())
+  Local aAreaSB1 := SB1->(FWGetArea())
   Local nOpcao   := ParamIxB[01]
+  Local lVlCred  := .F.
   //Local nGrvBat := ParamIxB[03]
+
+  DBSelectArea("SB1")
+  IF SB1->(MsSeek(xFilial("SB1") + SL2->L2_PRODUTO ))
+    If SB1->B1_VALEPRE == "1"
+      lVlCred := .T.
+    EndIF
+  EndIF 
 
   Do Case
     Case nOpcao == 1
       Return
     Case nOpcao == 2
       IF SL1->L1_SITUA == 'OK'
-        If AllTrim(SL2->L2_PRODUTO) == ("VALE")
+        If lVlCred
           u_DSOAPF01("MovMovimentoPedido")  
         Else
           u_DSOAPF01("MovMovimentoTBCData")
@@ -56,6 +65,7 @@ User Function LJ7002()
       EndIF
   End 
   
+  FWRestArea(aAreaSB1)
   FWRestArea(aAreaSL1)
   FWRestArea(aPEArea)
 Return

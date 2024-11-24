@@ -85,6 +85,7 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
     Local cFilAux   := ""
     Local cQry      := ""
     Local _cAlias   := GetNextAlias()
+    Local lVlCred   := .F.
     Local nY 
 
     Default pEndpoint := ""
@@ -105,9 +106,22 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
     
     Do Case
         Case (IsInCallStack("LOJA701"))
-            IF SL1->L1_SITUA == 'OK' .And. ( Empty(SL1->L1_XINT_RM) .Or. AllTrim(SL1->L1_XINT_RM) == "C" )
-                cEndPoint := "MovMovimentoTBCData"
-            ElseIF SL1->L1_SITUA == 'FR' .And. ( Empty(SL1->L1_XINT_RM) .Or. AllTrim(SL1->L1_XINT_RM) == "C" )
+            IF SL1->L1_SITUA == 'OK' .And. Empty(SL1->L1_XINT_RM)
+                DBSelectArea("SL2")
+                IF SL2->(MSSeek(xFilial("SL2") + SL1->L1_NUM )) 
+                    DBSelectArea("SB1")
+                    IF SB1->(MSSeek(xFilial("SB1") + SL2->L2_PRODUTO )) 
+                        If SB1->B1_VALEPRE == "1"
+                            lVlCred := .T.
+                        EndIF
+                    EndIF
+                EndIF  
+                IF lVlCred
+                    cEndPoint := "MovMovimentoPedido"
+                Else
+                    cEndPoint := "MovMovimentoTBCData"
+                EndIF 
+            ElseIF SL1->L1_SITUA == 'FR' .And. Empty(SL1->L1_XINT_RM)
                 cEndPoint := "MovMovimentoPedido"
             Else
                 IF !IsBlind()
@@ -1835,6 +1849,7 @@ Static Function fEnvNFeVend()
         While SL2->(!Eof()) .And. (SL2->L2_FILIAL + SL2->L2_NUM == SL1->L1_FILIAL + SL1->L1_NUM)
             nDescont += SL2->L2_VALDESC
             nPerDes  += SL2->L2_DESC
+        SL2->(DBSkip()) 
         EndDo
     EndIF 
     SL2->(DBGoTop())
@@ -2145,7 +2160,7 @@ Static Function fEnvNFeVend()
         cBody += '                                  <NSEQITMMOV>'+ Alltrim(AlltoChar(Val(SL2->L2_ITEM))) +'</NSEQITMMOV> '
         cBody += '                                  <CODTRB>ICMS</CODTRB> '
         cBody += '                                  <BASEDECALCULO>' + Alltrim(AlltoChar(SL2->L2_BASEICM, cPicVal)) + '</BASEDECALCULO> '
-        cBody += '                                  <ALIQUOTA>' + Alltrim(AlltoChar(SL2->L2_SITTRIB, cPicVal)) + '</ALIQUOTA> '
+        cBody += '                                  <ALIQUOTA>' + StrTran(Alltrim(SL2->L2_SITTRIB),".",",") + '</ALIQUOTA> '
         cBody += '                                  <VALOR>' + Alltrim(AlltoChar(SL2->L2_VALICM, cPicVal)) + '</VALOR> '
         cBody += '                                  <FATORREDUCAO>0,0000</FATORREDUCAO> '
         cBody += '                                  <FATORSUBSTTRIB>0,0000</FATORSUBSTTRIB> '
@@ -2224,6 +2239,7 @@ Static Function fEnvNFeVend()
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("SaveRecord")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
         u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"SL1 - "+SL1->L1_NUM,"2","ERRO")
+        u_fEnvMail("RM1",cTitulo,DecodeUTF8(oWsdl:cError, "cp1252"))
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
@@ -2231,6 +2247,7 @@ Static Function fEnvNFeVend()
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
             u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"SL1 - "+SL1->L1_NUM,"2","ERRO")
+            u_fEnvMail("RM1",cTitulo,DecodeUTF8(oWsdl:cError, "cp1252"))
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -2242,6 +2259,7 @@ Static Function fEnvNFeVend()
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
                 u_fnGrvLog(cEndPoint,cBody,"",oXML:Error(),"SL1 - "+SL1->L1_NUM,"2","ERRO")
+                u_fEnvMail("RM1",cTitulo,cResult)
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -2275,6 +2293,7 @@ Static Function fEnvNFeVend()
                     EndIF 
                     u_fnGrvLog(cEndPoint,cBody,"",cResult,"SL1 - "+SL1->L1_NUM,"2","ERRO")
                     ApMsgAlert(cResult,"Erro Integracao TOTVS Corpore RM")
+                    u_fEnvMail("RM1",cTitulo,cResult)
                 EndIF 
             Endif
 
@@ -2320,6 +2339,7 @@ Static Function fEnvPedVend()
         While SL2->(!Eof()) .And. (SL2->L2_FILIAL + SL2->L2_NUM == SL1->L1_FILIAL + SL1->L1_NUM)
             nDescont += SL2->L2_VALDESC
             nPerDes  += SL2->L2_DESC
+        SL2->(DBSkip())
         EndDo
     EndIF 
     SL2->(DBGoTop())
@@ -2664,6 +2684,7 @@ Static Function fEnvPedVend()
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("SaveRecord")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
         u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Venda Futura / Orçamento - "+SL1->L1_NUM,"2","ERRO")
+        u_fEnvMail("RM1",cTitulo,DecodeUTF8(oWsdl:cError, "cp1252"))
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
@@ -2671,6 +2692,7 @@ Static Function fEnvPedVend()
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
             u_fnGrvLog(cEndPoint,cBody,"",DecodeUTF8(oWsdl:cError, "cp1252"),"Venda Futura / Orçamento - "+SL1->L1_NUM,"2","ERRO")
+            u_fEnvMail("RM1",cTitulo,DecodeUTF8(oWsdl:cError, "cp1252"))
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -2682,6 +2704,7 @@ Static Function fEnvPedVend()
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
                 u_fnGrvLog(cEndPoint,cBody,"",oXML:Error(),"Venda Futura / Orçamento - "+SL1->L1_NUM,"2","ERRO")
+                u_fEnvMail("RM1",cTitulo,oXML:Error())
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -2707,9 +2730,11 @@ Static Function fEnvPedVend()
                             SL1->L1_XINT_RM := "S"
                         SL1->(MSUnlock())
                         u_fEnvMail("RM1",cTitulo,cResult)
+                        u_fEnvMail("RM1",cTitulo,cResult)
                     EndIF 
                     ApMsgAlert(cResult,"Erro Integracao TOTVS Corpore RM")
                     u_fnGrvLog(cEndPoint,cBody,"",cResult,"Venda Futura / Orçamento - "+SL1->L1_NUM,"2","ERRO")
+                    u_fEnvMail("RM1",cTitulo,cResult)
                 EndIF 
             Endif
 
@@ -3093,6 +3118,7 @@ Static Function fEnvNFeDev()
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("SaveRecord")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
         u_fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"NF: "+AllTrim(SF1->F1_DOC) + " - Serie: "+ AllTrim(SF1->F1_SERIE),"2","ERRO")
+        u_fEnvMail("RM1",cTitulo,DecodeUTF8(oWsdl:cError, "cp1252"))
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
@@ -3100,6 +3126,7 @@ Static Function fEnvNFeDev()
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
             u_fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"NF: "+AllTrim(SF1->F1_DOC) + " - Serie: "+ AllTrim(SF1->F1_SERIE),"2","ERRO")
+            u_fEnvMail("RM1",cTitulo,DecodeUTF8(oWsdl:cError, "cp1252"))
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -3111,6 +3138,7 @@ Static Function fEnvNFeDev()
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
                 u_fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"NF: "+AllTrim(SF1->F1_DOC) + " - Serie: "+ AllTrim(SF1->F1_SERIE),"2","ERRO")
+                u_fEnvMail("RM1",cTitulo,DecodeUTF8(oWsdl:cError, "cp1252"))
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -3128,6 +3156,7 @@ Static Function fEnvNFeDev()
                         SF1->F1_XINT_RM := "S"
                     SF1->(MSUnlock())
                     u_fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),"NF: "+AllTrim(SF1->F1_DOC) + " - Serie: "+ AllTrim(SF1->F1_SERIE),"6","ENVIO")
+                    u_fEnvMail("RM1",cTitulo,oXML:Error())
                 Else
                     cIDMovRet := wsNumeroMOV() //Realiza consulta do Movimento atraves do Numero,Serie e Cliente do NFC-e
                     
@@ -3141,6 +3170,7 @@ Static Function fEnvNFeDev()
 
                     ApMsgAlert(cResult,"Erro Integracao TOTVS Corpore RM")
                     u_fnGrvLog(cEndPoint,cBody,"",cResult,"NF: "+AllTrim(SF1->F1_DOC) + " - Serie: "+ AllTrim(SF1->F1_SERIE),"2","ERRO")
+                    u_fEnvMail("RM1",cTitulo,cResult)
                 EndIF 
             Endif
 
