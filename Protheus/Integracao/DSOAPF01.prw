@@ -10,7 +10,7 @@
 User Function: DSOAPF01 - Função para Integração via Webservice SOAP com o TOTVS Corpore RM 
 @OWNER PanCristal
 @VERSION PROTHEUS 12
-@SINCE 08/10/2024
+@SINCE 25/11/2024
 @Permite
 Programa Fonte
 /*/
