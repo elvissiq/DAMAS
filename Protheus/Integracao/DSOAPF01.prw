@@ -10,7 +10,7 @@
 User Function: DSOAPF01 - Função para Integração via Webservice SOAP com o TOTVS Corpore RM 
 @OWNER PanCristal
 @VERSION PROTHEUS 12
-@SINCE 25/11/2024
+@SINCE 28/11/2024
 @Permite
 Programa Fonte
 /*/
@@ -609,9 +609,15 @@ Static Function fwsProdutos()
     Local cTESSai   := ""
     Local cQryF4    := ""
     Local _cAliasF4 := GetNextAlias()
+    Local aSM0Data  := FWLoadSM0()
+    Local aSaldoIni := {}
     Local aRegXML   := {}
     Local aErro     := {}
-    Local nY, lOk, nOpc
+    Local nY, nX, lOk, nOpc
+
+    Private lMSHelpAuto     := .T.
+    Private lAutoErrNoFile  := .T.
+    Private lMsErroAuto     := .F.
 
     cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
     cBody += '  <soapenv:Header/> '
@@ -746,6 +752,26 @@ Static Function fwsProdutos()
                             cErro := aErro[06]
                             u_fnGrvLog(cEndPoint,cBody,cResult,cErro,"Erro Produto: " + aRegXML[04][03] + " - " +aRegXML[09][03],cValToChar(nOpc),"Integracao Produto")
                         Else
+                            
+                            DBSelectArea("SB9")
+                            For nX := 1 TO Len(aSM0Data)
+                                If !SB9->(MSSeek(aSM0Data[nX][02] + AllTrim(aRegXML[04][03])))
+                                    aSaldoIni := {}
+                                    aAdd(aSaldoIni, {"B9_FILIAL", aSM0Data[nY][02],Nil})
+                                    aAdd(aSaldoIni, {"B9_COD"   , aRegXML[04][03], Nil})
+                                    aAdd(aSaldoIni, {"B9_LOCAL" , "01.02",         Nil})
+                                    aAdd(aSaldoIni, {"B9_QINI"  , 0,               Nil})
+                                    
+                                    lMsErroAuto     := .F.
+                                    
+                                    Begin Transaction
+                                        MSExecAuto({|x, y| Mata220(x, y)}, aSaldoIni, 3)
+                                        If lMsErroAuto
+                                            DisarmTransaction()
+                                        EndIf
+                                    End Transaction
+                                EndIF 
+                            Next
                             u_fnGrvLog(cEndPoint,cBody,cResult,,"Produto: " + aRegXML[04][03] + " - " +aRegXML[09][03],cValToChar(nOpc),"Integracao Produto")
                         EndIf
 
