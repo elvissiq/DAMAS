@@ -58,6 +58,8 @@ User Function DSOAPF01(pEndpoint,pCodProd,pLocPad)
         u_fIntRM('MovMovimentoTBCData',.F.)
 
         u_fIntRM('MovMovimentoPedido',.F.)
+
+        u_fIntRM('FisNFeInutilizarData',.F.)
     Else
         Processa({|| u_fIntRM(cEndPoint,.T.,pCodProd,pLocPad)}, "Integrando Endpoint " + cEndPoint + "...")
     EndIf
@@ -297,7 +299,9 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
                         (_cAlias)->(DbCloseArea()) 
                     EndIF 
                 Next 
-
+                
+                cEmpAnt := cEmpBkp
+                cFilAnt := cFilBkp
             Else    
                 fEnvNFeDev()
             EndIF 
@@ -336,6 +340,8 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
                     EndIF 
                 Next
 
+                cEmpAnt := cEmpBkp
+                cFilAnt := cFilBkp
             Else    
                 fEnvNFeVend()
             EndIF  
@@ -377,7 +383,9 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
                         (_cAlias)->(DbCloseArea()) 
                     EndIF 
                 Next
-
+                
+                cEmpAnt := cEmpBkp
+                cFilAnt := cFilBkp
             Else    
                 fEnvPedVend()
             EndIF  
@@ -391,6 +399,38 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
         Case cEndPoint == 'MovCancelMovProc'
             FwLogMsg("INFO", , "REST", FunName(), "", "01", '=== Integrando Endpoint: '+ cEndPoint +' ===')
             fCanMovim()
+            FwLogMsg("INFO", , "REST", FunName(), "", "01", '=== Finalizou a integracao do Endpoint: '+ cEndPoint +' ===')
+        Case cEndPoint == 'FisNFeInutilizarData'
+            FwLogMsg("INFO", , "REST", FunName(), "", "01", '=== Integrando Endpoint: '+ cEndPoint +' ===')
+                For nY := 1 TO Len(aSM0Data)
+                    If XXD->(MSSeek(Pad("RM",15)+aSM0Data[nY][01]+aSM0Data[nY][02]))
+                        cCodEmp := AllTrim(XXD->XXD_COMPA)
+                        cCodFil := AllTrim(XXD->XXD_BRANCH)
+                        cEmpAnt := AllTrim(aSM0Data[nY][01])
+                        cFilAnt := AllTrim(aSM0Data[nY][02])
+                
+                        cQry := " SELECT * FROM " + RetSQLName('SLX')
+                        cQry += " WHERE D_E_L_E_T_ <> '*' "
+                        cQry += " AND LX_FILIAL  = '" + xFilial("SLX") + "' "
+                        cQry += " AND LX_XIDMOV  = '' "
+                        cQry += " AND LX_XINT_RM = '' "
+                        cQry += " AND LX_TPCANC  = 'X' "
+                        cQry := ChangeQuery(cQry)
+                        IF Select(_cAlias) <> 0
+                            (_cAlias)->(DbCloseArea())
+                        EndIf
+                        dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQry),_cAlias,.T.,.T.)
+                        DBSelectArea("SLX")
+                        While !(_cAlias)->(EoF())
+                            SLX->(MSSeek(xFilial("SLX")+(_cAlias)->LX_PDV+(_cAlias)->LX_CUPOM+(_cAlias)->LX_SERIE+(_cAlias)->LX_ITEM+(_cAlias)->LX_HORA))
+                            fInutNFCe()
+                        (_cAlias)->(DBSkip())
+                        EndDo
+                        (_cAlias)->(DbCloseArea()) 
+                    EndIF 
+                Next
+                cEmpAnt := cEmpBkp
+                cFilAnt := cFilBkp
             FwLogMsg("INFO", , "REST", FunName(), "", "01", '=== Finalizou a integracao do Endpoint: '+ cEndPoint +' ===')
     End Case 
     
@@ -2087,7 +2127,11 @@ Static Function fEnvNFeVend()
             cBody += '                                  <NSU>'+ AllTrim(SubSTR(SL4->L4_NSUTEF,1,12)) +'</NSU> '
             cBody += '                                  <QTDEPARCELAS>0</QTDEPARCELAS> '
             cBody += '                                  <IDFORMAPAGTO>'+ Alltrim(SAE->AE_XIDFORM) +'</IDFORMAPAGTO> '
-            cBody += '                                  <DATAVENCIMENTO>'+ ( FWTimeStamp(3, SL4->L4_DATA , IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) ) +'</DATAVENCIMENTO> '
+            If Alltrim(SL4->L4_FORMA) == "R$" .AND. !Empty(SL1->L1_ORCRES)
+            cBody += '                                  <DATAVENCIMENTO>'+ ( FWTimeStamp(3, DaySum(SL4->L4_DATA,1), IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) ) +'</DATAVENCIMENTO> '
+            Else
+            cBody += '                                  <DATAVENCIMENTO>'+ ( FWTimeStamp(3, SL4->L4_DATA, IIF(!Empty(SL1->L1_HORA),SL1->L1_HORA,Time())) ) +'</DATAVENCIMENTO> '
+            EndIF 
             cBody += '                                  <TIPOPAGAMENTO>1</TIPOPAGAMENTO> '
             cBody += '                                  <VALOR>'+ Alltrim(AlltoChar(SL4->L4_VALOR, cPicVal)) +'</VALOR> '
             cBody += '                                  <DEBITOCREDITO>C</DEBITOCREDITO> '
@@ -2849,13 +2893,13 @@ Static Function fEnvNFeDev()
     cBody += '                                  <DATAEMISSAO>' + ( FWTimeStamp(3, SF1->F1_EMISSAO , SF1->F1_HORA )  )+ '</DATAEMISSAO> '
     cBody += '                                  <DATASAIDA>' + ( FWTimeStamp(3, SF1->F1_EMISSAO , SF1->F1_HORA )  )+ '</DATASAIDA> '
     cBody += '                                  <COMISSAOREPRES>0,0000</COMISSAOREPRES> '
-    cBody += '                                  <VALORBRUTO>' + AllTrim(AlltoChar(SF1->F1_VALBRUT, cPicVal)) + '</VALORBRUTO> '
-    cBody += '                                  <VALORLIQUIDO>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</VALORLIQUIDO> '
+    cBody += '                                  <VALORBRUTO>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</VALORBRUTO> '
+    cBody += '                                  <VALORLIQUIDO>' + AllTrim(AlltoChar(SF1->F1_VALBRUT, cPicVal)) + '</VALORLIQUIDO> '
     cBody += '                                  <VALOROUTROS>0,0000</VALOROUTROS> '
     cBody += '                                  <PERCENTUALFRETE>0,0000</PERCENTUALFRETE> '
     cBody += '                                  <VALORFRETE>0,0000</VALORFRETE> '
     cBody += '                                  <PERCENTUALDESC>0,0000</PERCENTUALDESC> '
-    cBody += '                                  <VALORDESC>0,0000</VALORDESC> '
+    cBody += '                                  <VALORDESC>' + AllTrim(AlltoChar(SF1->F1_DESCONT, cPicVal)) + '</VALORDESC> '
     cBody += '                                  <PERCENTUALDESP>0,0000</PERCENTUALDESP> '
     cBody += '                                  <VALORDESP>0,0000</VALORDESP> '
     cBody += '                                  <PERCCOMISSAO>0,0000</PERCCOMISSAO> '
@@ -2894,7 +2938,7 @@ Static Function fEnvNFeDev()
     cBody += '                                  <USUARIOCRIACAO>' + cUser + '</USUARIOCRIACAO> '
     cBody += '                                  <DATACRIACAO>' + ( FWTimeStamp(3, SF1->F1_EMISSAO , SF1->F1_HORA )  )+ '</DATACRIACAO> '
     cBody += '                                  <STSEMAIL>0</STSEMAIL> '
-    cBody += '                                  <VALORBRUTOINTERNO>' + AllTrim(AlltoChar(SF1->F1_VALBRUT, cPicVal)) + '</VALORBRUTOINTERNO> '
+    cBody += '                                  <VALORBRUTOINTERNO>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</VALORBRUTOINTERNO> '
     cBody += '                                  <VINCULADOESTOQUEFL>0</VINCULADOESTOQUEFL> '
     cBody += '                                  <HORASAIDA>' + ( FWTimeStamp(3, SF1->F1_EMISSAO , SF1->F1_HORA )  )+ '</HORASAIDA> '
     cBody += '                                  <VRBASEINSSOUTRAEMPRESA>0,0000</VRBASEINSSOUTRAEMPRESA> '
@@ -2909,14 +2953,14 @@ Static Function fEnvNFeDev()
     cBody += '                                  <VALORMERCADORIAS>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</VALORMERCADORIAS> '
     cBody += '                                  <USARATEIOVALORFIN>1</USARATEIOVALORFIN> '
     cBody += '                                  <CODCOLCFOAUX>0</CODCOLCFOAUX> '
-    cBody += '                                  <VALORRATEIOLAN>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</VALORRATEIOLAN> '
+    cBody += '                                  <VALORRATEIOLAN>' + AllTrim(AlltoChar(SF1->F1_VALBRUT, cPicVal)) + '</VALORRATEIOLAN> '
     cBody += '                                  <HISTORICOLONGO>Nota fiscal de saida referenciada Numero - ' + AllTrim(SD1->D1_NFORI) + ' / Serie - ' + AllTrim(SD1->D1_SERIORI) + '</HISTORICOLONGO> '
     cBody += '                                  <HISTORICOCURTO>Nota fiscal de saida referenciada Numero - ' + AllTrim(SD1->D1_NFORI) + ' / Serie - ' + AllTrim(SD1->D1_SERIORI) + '</HISTORICOCURTO> '
-    cBody += '                                  <RATEIOCCUSTODEPTO>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</RATEIOCCUSTODEPTO> '
-    cBody += '                                  <VALORBRUTOORIG>' + AllTrim(AlltoChar(SF1->F1_VALBRUT, cPicVal)) + '</VALORBRUTOORIG> '
-    cBody += '                                  <VALORLIQUIDOORIG>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</VALORLIQUIDOORIG> '
-    cBody += '                                  <VALOROUTROSORIG>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</VALOROUTROSORIG> '
-    cBody += '                                  <VALORRATEIOLANORIG>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</VALORRATEIOLANORIG> '
+    cBody += '                                  <RATEIOCCUSTODEPTO>' + AllTrim(AlltoChar(SF1->F1_VALBRUT, cPicVal)) + '</RATEIOCCUSTODEPTO> '
+    cBody += '                                  <VALORBRUTOORIG>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</VALORBRUTOORIG> '
+    cBody += '                                  <VALORLIQUIDOORIG>' + AllTrim(AlltoChar(SF1->F1_VALBRUT, cPicVal)) + '</VALORLIQUIDOORIG> '
+    cBody += '                                  <VALOROUTROSORIG>' + AllTrim(AlltoChar(SF1->F1_VALBRUT, cPicVal)) + '</VALOROUTROSORIG> '
+    cBody += '                                  <VALORRATEIOLANORIG>' + AllTrim(AlltoChar(SF1->F1_VALBRUT, cPicVal)) + '</VALORRATEIOLANORIG> '
     cBody += '                                  <FLAGCONCLUSAO>0</FLAGCONCLUSAO> '
     cBody += '                                  <STATUSPARADIGMA>N</STATUSPARADIGMA> '
     cBody += '                                  <STATUSINTEGRACAO>N</STATUSINTEGRACAO> '
@@ -2988,7 +3032,7 @@ Static Function fEnvNFeDev()
     cBody += '                                  <IDFORMAPAGTO>'+ Alltrim(SAE->AE_XIDFORM) +'</IDFORMAPAGTO> '
     cBody += '                                  <DATAVENCIMENTO>' + ( FWTimeStamp(3, DaySum(SF1->F1_EMISSAO,1) , SF1->F1_HORA )  )+ '</DATAVENCIMENTO> '
     cBody += '                                  <TIPOPAGAMENTO>1</TIPOPAGAMENTO> '
-    cBody += '                                  <VALOR>' + AllTrim(AlltoChar(SF1->F1_VALMERC, cPicVal)) + '</VALOR> '
+    cBody += '                                  <VALOR>' + AllTrim(AlltoChar(SF1->F1_VALBRUT, cPicVal)) + '</VALOR> '
     cBody += '                                  <DEBITOCREDITO>C</DEBITOCREDITO> '
     cBody += '                              </TMOVPAGTO> '
     
@@ -3019,8 +3063,8 @@ Static Function fEnvNFeDev()
             cBody += '                                  <CODUND>' + AllTrim(SD1->D1_UM) + '</CODUND> '
             cBody += '                                  <QUANTIDADEARECEBER>' + AllTrim(AlltoChar(SD1->D1_QUANT, cPicVal)) + '</QUANTIDADEARECEBER> '
             cBody += '                                  <FLAGEFEITOSALDO>1</FLAGEFEITOSALDO> '
-            cBody += '                                  <VALORUNITARIO>' + AllTrim(AlltoChar(SD1->D1_TOTAL, cPicVal)) + '</VALORUNITARIO> '
-            cBody += '                                  <VALORFINANCEIRO>' + AllTrim(AlltoChar(SD1->D1_TOTAL, cPicVal)) + '</VALORFINANCEIRO> '
+            cBody += '                                  <VALORUNITARIO>' + AllTrim(AlltoChar(SD1->D1_VUNIT - SD1->D1_VALDESC, cPicVal)) + '</VALORUNITARIO> '
+            cBody += '                                  <VALORFINANCEIRO>' + AllTrim(AlltoChar(SD1->D1_TOTAL - SD1->D1_VALDESC, cPicVal)) + '</VALORFINANCEIRO> '
             cBody += '                                  <CODCCUSTO>' + Alltrim(Posicione("SZ2",1, xFilial("SZ2") + SD1->D1_COD,"Z2_CCUSTO")) + '</CODCCUSTO> '
             cBody += '                                  <ALIQORDENACAO>0,0000</ALIQORDENACAO> '
             cBody += '                                  <QUANTIDADEORIGINAL>' + AllTrim(AlltoChar(SD1->D1_QUANT, cPicVal)) + '</QUANTIDADEORIGINAL> '
@@ -3050,9 +3094,9 @@ Static Function fEnvNFeDev()
             cBody += '                                  <VALSERVICONFE>0,0000</VALSERVICONFE> '
             cBody += '                                  <CODLOC>' + AllTrim(SD1->D1_LOCAL) + '</CODLOC> '
             cBody += '                                  <VALORBEM>0,0000</VALORBEM> '
-            cBody += '                                  <VALORLIQUIDO>' + AllTrim(AlltoChar(SD1->D1_VUNIT, cPicVal)) + '</VALORLIQUIDO> '
-            cBody += '                                  <RATEIOCCUSTODEPTO>' + AllTrim(AlltoChar(SD1->D1_VUNIT, cPicVal)) + '</RATEIOCCUSTODEPTO> '
-            cBody += '                                  <VALORBRUTOITEMORIG>' + AllTrim(AlltoChar(SD1->D1_VUNIT, cPicVal)) + '</VALORBRUTOITEMORIG> '
+            cBody += '                                  <VALORLIQUIDO>' + AllTrim(AlltoChar(SD1->D1_TOTAL - SD1->D1_VALDESC, cPicVal)) + '</VALORLIQUIDO> '
+            cBody += '                                  <RATEIOCCUSTODEPTO>' + AllTrim(AlltoChar(SD1->D1_VALDESC, cPicVal)) + '</RATEIOCCUSTODEPTO> '
+            cBody += '                                  <VALORBRUTOITEMORIG>' + AllTrim(AlltoChar(SD1->D1_TOTAL, cPicVal)) + '</VALORBRUTOITEMORIG> '
             cBody += '                                  <CODNATUREZAITEM>1.202.01</CODNATUREZAITEM> ' //Aqui ??????
             cBody += '                                  <QUANTIDADETOTAL>' + AllTrim(AlltoChar(SD1->D1_QUANT, cPicVal)) + '</QUANTIDADETOTAL> '
             cBody += '                                  <PRODUTOSUBSTITUTO>0</PRODUTOSUBSTITUTO> '
@@ -3082,7 +3126,7 @@ Static Function fEnvNFeDev()
             cBody += '                                  <IDMOVDESTINO>' + AllTrim(SL1->L1_XIDMOV) + '</IDMOVDESTINO> ' //Identificador de Referencia
             cBody += '                                  <NSEQITMMOVDESTINO>' + Alltrim(AlltoChar(Val(SD1->D1_ITEM))) + '</NSEQITMMOVDESTINO> '
             cBody += '                                  <QUANTIDADE>' + AllTrim(AlltoChar(SD1->D1_QUANT, cPicVal)) + '</QUANTIDADE> '
-            cBody += '                                  <VALORRECEBIDO>' + AllTrim(AlltoChar(SD1->D1_TOTAL, cPicVal)) + '</VALORRECEBIDO> '
+            cBody += '                                  <VALORRECEBIDO>' + AllTrim(AlltoChar(SD1->D1_TOTAL - SD1->D1_VALDESC, cPicVal)) + '</VALORRECEBIDO> '
             cBody += '                              </TITMMOVRELAC> '
             cBody += '                              <TITMMOVFISCAL> '
             cBody += '                                  <CODCOLIGADA>' + cCodEmp + '</CODCOLIGADA> '

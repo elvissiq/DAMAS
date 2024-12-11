@@ -26,7 +26,8 @@ User Function INTTSTRM()
                         "wsPrdFilCCusto",;
                         "wsFormaPagamento",;
                         "wsFpagtoCaixa",;
-                        "MovMovimentoTBCData"}
+                        "MovMovimentoTBCData",;
+                        "FisNFeInutilizarData"}
     Local cSelec := ""
 
     aAdd( aPerg ,{9,"Selecione o EndPoint",200     , 40 ,.T.})
