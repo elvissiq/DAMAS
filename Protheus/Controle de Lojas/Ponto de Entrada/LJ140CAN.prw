@@ -25,12 +25,7 @@ User Function LJ140CAN()
         If XXD->(MSSeek(Pad("RM",15)+cEmpAnt+cFilAnt))
                 
                 cCodEmp := AllTrim(XXD->XXD_COMPA)
-                cCodFil := AllTrim(XXD->XXD_BRANCH)
-                
-                IF Empty(SLX->LX_XINT_RM + SLX->LX_XIDMOV) .And. SLX->LX_TPCANC == "X"
-                        u_fInutNFCe()
-                        Return .T.
-                EndIF 
+                cCodFil := AllTrim(XXD->XXD_BRANCH) 
 
                 IF AllTrim(SL1->L1_XINT_RM) == "S" .And. !Empty(SL1->L1_XIDMOV)
                         aRet := U_fnConsultBX(AllTrim(SL1->L1_XIDMOV))

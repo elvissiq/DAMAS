@@ -10,7 +10,7 @@
 User Function: DSOAPF01 - Função para Integração via Webservice SOAP com o TOTVS Corpore RM 
 @OWNER PanCristal
 @VERSION PROTHEUS 12
-@SINCE 28/11/2024
+@SINCE 11/12/2024
 @Permite
 Programa Fonte
 /*/
@@ -423,7 +423,7 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
                         DBSelectArea("SLX")
                         While !(_cAlias)->(EoF())
                             SLX->(MSSeek(xFilial("SLX")+(_cAlias)->LX_PDV+(_cAlias)->LX_CUPOM+(_cAlias)->LX_SERIE+(_cAlias)->LX_ITEM+(_cAlias)->LX_HORA))
-                            fInutNFCe()
+                            u_fInutNFCe()
                         (_cAlias)->(DBSkip())
                         EndDo
                         (_cAlias)->(DbCloseArea()) 
@@ -5127,6 +5127,7 @@ User Function fInutNFCe()
     If !oWsdl:ParseURL(cURL+cPath) .Or. Empty(oWsdl:ListOperations()) .Or. !oWsdl:SetOperation("SaveRecord")
         ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
         u_fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"Erro - Inutilizacao do Cupom: "+AllTrim(SLX->LX_CUPOM) + " - Serie: "+ AllTrim(SLX->LX_SERIE),"2","ERRO")
+        u_fEnvMail("RM1",cTitulo,DecodeUTF8(oWsdl:cError, "cp1252"))
     Else
 
         oWsdl:AddHttpHeader("Authorization", "Basic " + Encode64(cUser+":"+cPass))
@@ -5134,6 +5135,7 @@ User Function fInutNFCe()
         If !oWsdl:SendSoapMsg( cBody )
             ApMsgAlert(DecodeUTF8(oWsdl:cError, "cp1252"),"Erro Integracao TOTVS Corpore RM")
             u_fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"Erro - Inutilizacao do Cupom: "+AllTrim(SLX->LX_CUPOM) + " - Serie: "+ AllTrim(SLX->LX_SERIE),"2","ERRO")
+            u_fEnvMail("RM1",cTitulo,DecodeUTF8(oWsdl:cError, "cp1252"))
             Return
         Else
             cResult := oWsdl:GetSoapResponse()
@@ -5145,6 +5147,7 @@ User Function fInutNFCe()
             If !oXML:Parse( cResult )
                 ApMsgAlert(oXML:Error(),"Erro Integracao TOTVS Corpore RM")
                 u_fnGrvLog(cEndPoint,cBody,cResult,DecodeUTF8(oWsdl:cError, "cp1252"),"Erro - Inutilizacao do Cupom: "+AllTrim(SLX->LX_CUPOM) + " - Serie: "+ AllTrim(SLX->LX_SERIE),"2","ERRO")
+                u_fEnvMail("RM1",cTitulo,DecodeUTF8(oWsdl:cError, "cp1252"))
             Else
                 oXML:XPathRegisterNs("ns" , "http://schemas.xmlsoap.org/soap/envelope/" )
                 oXml:xPathRegisterNs("ns1", "http://www.totvs.com/")
@@ -5163,17 +5166,9 @@ User Function fInutNFCe()
                     SLX->(MSUnlock())
                     u_fnGrvLog(cEndPoint,cBody,cResult,oXML:Error(),"Inutilizacao do Cupom: "+AllTrim(SLX->LX_CUPOM) + " - Serie: "+ AllTrim(SLX->LX_SERIE),"6","ENVIO")
                 Else
-                    
-                    If !Empty(cIDMovRet)
-                        RecLock("SF1",.F.)
-                            SF1->F1_XIDMOV := cIDMovRet
-                            SF1->F1_XINT_RM := "S"
-                        SF1->(MSUnlock())
-                        u_fEnvMail("RM1",cTitulo,cResult)
-                    EndIF
-
                     ApMsgAlert(cResult,"Erro Integracao TOTVS Corpore RM")
                     u_fnGrvLog(cEndPoint,cBody,"",cResult,"Erro - Inutilizacao do Cupom: "+AllTrim(SLX->LX_CUPOM) + " - Serie: "+ AllTrim(SLX->LX_SERIE),"2","ERRO")
+                    u_fEnvMail("RM1",cTitulo,cResult)
                 EndIF 
             Endif
 
