@@ -99,7 +99,7 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
     Private cUser     := SuperGetMV("MV_XRMUSER",.F.,"rimeson")
     Private cPass     := SuperGetMV("MV_XRMPASS",.F.,"123456")
     Private cDiasInc  := SuperGetMV("MV_XDINCRM",.F.,"0")
-    Private cDiasAlt  := SuperGetMV("MV_XDALTRM",.F.,"-365")
+    Private cDiasAlt  := SuperGetMV("MV_XDALTRM",.F.,"0")
     Private cCodEmp   := ""
     Private cCodFil   := ""
     Private cPicVal   := PesqPict( "SL1", "L1_VALBRUT")
@@ -458,20 +458,20 @@ Static Function fwsCliForR()
     Local aErro     := {}
     Local nY, lOk, nOpc
 
-    cBody := ' <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/"> '
-    cBody += '  <soapenv:Header/> '
-    cBody += '  <soapenv:Body> '
-    cBody += '      <tot:RealizarConsultaSQL> '
-    cBody += '          <tot:codSentenca>'+cEndPoint+'</tot:codSentenca> '
-    cBody += '          <tot:codColigada>0</tot:codColigada> '
-    cBody += '          <tot:codSistema>T</tot:codSistema> '
-    cBody += '          <tot:parameters>CODCOLIGADA_N=0;ATIVO_N=1;CODCFO_S=TODOS;CGCCFO_S=TODOS;NOMEFANTASIA_S=TODOS;PAGREC_N=1;CRIACAO_N='+cDiasInc+';ALTERACAO_N='+cDiasAlt+'</tot:parameters> '
-    cBody += '      </tot:RealizarConsultaSQL> '
-    cBody += '  </soapenv:Body> '
-    cBody += ' </soapenv:Envelope> '
+    cBody := '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tot="http://www.totvs.com/">'
+    cBody += '<soapenv:Header/>'
+    cBody += '<soapenv:Body>'
+    cBody += '<tot:RealizarConsultaSQL>'
+    cBody += '<tot:codSentenca>'+cEndPoint+'</tot:codSentenca>'
+    cBody += '<tot:codColigada>0</tot:codColigada>'
+    cBody += '<tot:codSistema>T</tot:codSistema>'
+    cBody += '<tot:parameters>CODCOLIGADA_N=0;ATIVO_N=1;CODCFO_S=TODOS;CGCCFO_S=TODOS;NOMEFANTASIA_S=TODOS;PAGREC_N=1;CRIACAO_N='+cDiasInc+';ALTERACAO_N='+cDiasAlt+'</tot:parameters>'
+    cBody += '</tot:RealizarConsultaSQL>'
+    cBody += '</soapenv:Body>'
+    cBody += '</soapenv:Envelope>'
 
     oWsdl := TWsdlManager():New()
-    oWsdl:nTimeout         := 120
+    //oWsdl:nTimeout         := 120
     oWsdl:lSSLInsecure     := .T.
     oWsdl:lProcResp        := .T.
     oWsdl:bNoCheckPeerCert := .T.
@@ -539,18 +539,22 @@ Static Function fwsCliForR()
                         aRegXML[05][03] := StrTran(aRegXML[05][03],"/","")
 
                         aRegXML[14][03] := StrTran(aRegXML[14][03],"-","")
+                        aRegXML[14][03] := StrTran(aRegXML[14][03],".","")
 
                         aRegXML[15][03] := StrTran(aRegXML[15][03],"-","")
+                        aRegXML[15][03] := StrTran(aRegXML[15][03],".","")
                         aRegXML[15][03] := StrTran(aRegXML[15][03],"(","")
                         aRegXML[15][03] := StrTran(aRegXML[15][03],")","")
                         aRegXML[15][03] := Pad(Alltrim(aRegXML[15][03]),FWTamSX3("A1_TEL")[1])
 
                         aRegXML[16][03] := StrTran(aRegXML[16][03],"-","")
+                        aRegXML[16][03] := StrTran(aRegXML[16][03],".","")
                         aRegXML[16][03] := StrTran(aRegXML[16][03],"(","")
                         aRegXML[16][03] := StrTran(aRegXML[16][03],")","")
                         aRegXML[16][03] := Pad(Alltrim(aRegXML[16][03]),FWTamSX3("A1_FAX")[1])
 
                         aRegXML[17][03] := StrTran(aRegXML[17][03],"-","")
+                        aRegXML[17][03] := StrTran(aRegXML[17][03],".","")
                         aRegXML[17][03] := StrTran(aRegXML[17][03],"(","")
                         aRegXML[17][03] := StrTran(aRegXML[17][03],")","")
                         aRegXML[17][03] := Pad(Alltrim(aRegXML[17][03]),FWTamSX3("A1_TELEX")[1])
