@@ -757,20 +757,20 @@ Static Function fwsProdutos()
                         oSB1Mod:= oModel:getModel("SB1MASTER")
 
                         IF nOpc == 3
-                        oSB1Mod:setValue("B1_COD"    ,aRegXML[04][03]           ) // Codigo
+                        oSB1Mod:setValue("B1_COD"    ,aRegXML[04][03]                                               ) // Codigo
                         EndIF
-                        oSB1Mod:setValue("B1_DESC"   ,Alltrim(aRegXML[09][03])  ) // Descricao do Produto
-                        oSB1Mod:setValue("B1_TIPO"   ,"ME"                      ) // Tipo de Produto (MP,PA,.)
-                        oSB1Mod:setValue("B1_UM"     ,"UN"                      ) // Unidade de Medida
-                        oSB1Mod:setValue("B1_LOCPAD" ,"01.02"                   ) // Armazem Padrao p/Requis.
-                        oSB1Mod:setValue("B1_TS"     ,cTESSai                   ) // TES de Saída
-                        oSB1Mod:setValue("B1_POSIPI" ,aRegXML[13][03]           ) // Nomenclatura Ext.Mercosul
-                        oSB1Mod:setValue("B1_ORIGEM" ,"0"                       ) // Origem do Produto
-                        oSB1Mod:setValue("B1_PESO"   ,Val(aRegXML[16][03])      ) // Peso Liquido
-                        oSB1Mod:setValue("B1_PESBRU" ,Val(aRegXML[17][03])      ) // Peso Bruto
-                        oSB1Mod:setValue("B1_PESBRU" ,Val(aRegXML[17][03])      ) // Peso Bruto
-                        oSB1Mod:setValue("B1_XIDRM"  ,aRegXML[03][03]           ) // ID RM
-                        oSB1Mod:setValue("B1_XCLAFIS",aRegXML[57][03]           ) // Classificação Fiscal RM
+                        oSB1Mod:setValue("B1_DESC"   ,Upper(Pad(Alltrim(aRegXML[09][03]),FWTamSX3("B1_DESC")[1]))   ) // Descricao do Produto
+                        oSB1Mod:setValue("B1_TIPO"   ,"ME"                                                          ) // Tipo de Produto (MP,PA,.)
+                        oSB1Mod:setValue("B1_UM"     ,"UN"                                                          ) // Unidade de Medida
+                        oSB1Mod:setValue("B1_LOCPAD" ,"01.02"                                                       ) // Armazem Padrao p/Requis.
+                        oSB1Mod:setValue("B1_TS"     ,cTESSai                                                       ) // TES de Saída
+                        oSB1Mod:setValue("B1_POSIPI" ,AllTrim(StrTran(aRegXML[13][03],".",""))                      ) // Nomenclatura Ext.Mercosul
+                        oSB1Mod:setValue("B1_ORIGEM" ,"0"                                                           ) // Origem do Produto
+                        oSB1Mod:setValue("B1_PESO"   ,Val(aRegXML[16][03])                                          ) // Peso Liquido
+                        oSB1Mod:setValue("B1_PESBRU" ,Val(aRegXML[17][03])                                          ) // Peso Bruto
+                        oSB1Mod:setValue("B1_PESBRU" ,Val(aRegXML[17][03])                                          ) // Peso Bruto
+                        oSB1Mod:setValue("B1_XIDRM"  ,aRegXML[03][03]                                               ) // ID RM
+                        oSB1Mod:setValue("B1_XCLAFIS",aRegXML[57][03]                                               ) // Classificação Fiscal RM
 
                         If oModel:VldData()
                             If oModel:CommitData()
