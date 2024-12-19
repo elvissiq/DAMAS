@@ -95,9 +95,9 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
     Default pCodProd  := ""
     Default pLocPad   := ""
 
-    Private cUrl      := SuperGetMV("MV_XURLRM" ,.F.,"https://associacaodas145873.rm.cloudtotvs.com.br:1801")
-    Private cUser     := SuperGetMV("MV_XRMUSER",.F.,"rimeson")
-    Private cPass     := SuperGetMV("MV_XRMPASS",.F.,"123456")
+    Private cUrl      := SuperGetMV("MV_XURLRM" ,.F.,"https://rededamas.rm.cloudtotvs.com.br:8051")
+    Private cUser     := SuperGetMV("MV_XRMUSER",.F.,"PDV.PROTHEUS")
+    Private cPass     := SuperGetMV("MV_XRMPASS",.F.,"aric@2025#")
     Private cDiasInc  := SuperGetMV("MV_XDINCRM",.F.,"0")
     Private cDiasAlt  := SuperGetMV("MV_XDALTRM",.F.,"0")
     Private cCodEmp   := ""
@@ -657,6 +657,7 @@ Static Function fwsProdutos()
     Local aSaldoIni := {}
     Local aRegXML   := {}
     Local aErro     := {}
+    Local cFilBkp   := cFilAnt
     Local nY, nX, lOk, nOpc
 
     Private lMSHelpAuto     := .T.
@@ -798,10 +799,14 @@ Static Function fwsProdutos()
                         Else
                             
                             DBSelectArea("SB9")
-                            For nX := 1 TO Len(aSM0Data)
-                                If !SB9->(MSSeek(aSM0Data[nX][02] + AllTrim(aRegXML[04][03])))
+                            For nX := 1 To Len(aSM0Data)
+                                
+                                cFilAnt := aSM0Data[nX][02]
+
+                                If !SB9->(MSSeek(xfilial("SB9") + AllTrim(aRegXML[04][03])))
+                                    
                                     aSaldoIni := {}
-                                    aAdd(aSaldoIni, {"B9_FILIAL", aSM0Data[nY][02],Nil})
+                                    aAdd(aSaldoIni, {"B9_FILIAL", xfilial("SB9"),  Nil})
                                     aAdd(aSaldoIni, {"B9_COD"   , aRegXML[04][03], Nil})
                                     aAdd(aSaldoIni, {"B9_LOCAL" , "01.02",         Nil})
                                     aAdd(aSaldoIni, {"B9_QINI"  , 0,               Nil})
@@ -814,7 +819,10 @@ Static Function fwsProdutos()
                                             DisarmTransaction()
                                         EndIf
                                     End Transaction
+                                    
                                 EndIF 
+                                
+                                cFilAnt := cFilBkp
                             Next
                             u_fnGrvLog(cEndPoint,cBody,cResult,,"Produto: " + aRegXML[04][03] + " - " +aRegXML[09][03],cValToChar(nOpc),"Integracao Produto")
                         EndIf
@@ -2255,12 +2263,12 @@ Static Function fEnvNFeVend()
         cBody += '                                  <IDMOV>-1</IDMOV> '
         cBody += '                                  <NSEQITMMOV>'+ Alltrim(AlltoChar(Val(SL2->L2_ITEM))) +'</NSEQITMMOV> '
         cBody += '                                  <CODTRB>PIS</CODTRB> '
-        cBody += '                                  <BASEDECALCULO>' + Alltrim(AlltoChar(SL2->L2_BASEPIS, cPicVal)) + '</BASEDECALCULO> '
-        cBody += '                                  <ALIQUOTA>' + Alltrim(AlltoChar(SL2->L2_ALIQPIS, cPicVal)) + '</ALIQUOTA> '
-        cBody += '                                  <VALOR>' + Alltrim(AlltoChar(SL2->L2_VALPIS, cPicVal)) + '</VALOR> '
+        cBody += '                                  <BASEDECALCULO>' + Alltrim(AlltoChar(SL2->L2_BASEPS2, cPicVal)) + '</BASEDECALCULO> '
+        cBody += '                                  <ALIQUOTA>' + Alltrim(AlltoChar(SL2->L2_ALIQPS2, cPicVal)) + '</ALIQUOTA> '
+        cBody += '                                  <VALOR>' + Alltrim(AlltoChar(SL2->L2_VALPS2, cPicVal)) + '</VALOR> '
         cBody += '                                  <FATORREDUCAO>0,0000</FATORREDUCAO> '
         cBody += '                                  <FATORSUBSTTRIB>0,0000</FATORSUBSTTRIB> '
-        cBody += '                                  <BASEDECALCULOCALCULADA>' + Alltrim(AlltoChar(SL2->L2_BASEPIS, cPicVal)) + '</BASEDECALCULOCALCULADA> '
+        cBody += '                                  <BASEDECALCULOCALCULADA>' + Alltrim(AlltoChar(SL2->L2_BASEPS2, cPicVal)) + '</BASEDECALCULOCALCULADA> '
         cBody += '                                  <EDITADO>0</EDITADO> '
         cBody += '                                  <TIPORECOLHIMENTO>1</TIPORECOLHIMENTO> '
         cBody += '                                  <CODTRBBASE>PIS</CODTRBBASE> '
@@ -2272,12 +2280,12 @@ Static Function fEnvNFeVend()
         cBody += '                                  <IDMOV>-1</IDMOV> '
         cBody += '                                  <NSEQITMMOV>'+ Alltrim(AlltoChar(Val(SL2->L2_ITEM))) +'</NSEQITMMOV> '
         cBody += '                                  <CODTRB>COFINS</CODTRB> '
-        cBody += '                                  <BASEDECALCULO>' + Alltrim(AlltoChar(SL2->L2_BASECOF, cPicVal)) + '</BASEDECALCULO> '
-        cBody += '                                  <ALIQUOTA>' + Alltrim(AlltoChar(SL2->L2_ALIQCOF, cPicVal)) + '</ALIQUOTA> '
-        cBody += '                                  <VALOR>' + Alltrim(AlltoChar(SL2->L2_VALCOFI, cPicVal)) + '</VALOR> '
+        cBody += '                                  <BASEDECALCULO>' + Alltrim(AlltoChar(SL2->L2_BASECF2, cPicVal)) + '</BASEDECALCULO> '
+        cBody += '                                  <ALIQUOTA>' + Alltrim(AlltoChar(SL2->L2_ALIQCF2, cPicVal)) + '</ALIQUOTA> '
+        cBody += '                                  <VALOR>' + Alltrim(AlltoChar(SL2->L2_VALCF2, cPicVal)) + '</VALOR> '
         cBody += '                                  <FATORREDUCAO>0,0000</FATORREDUCAO> '
         cBody += '                                  <FATORSUBSTTRIB>0,0000</FATORSUBSTTRIB> '
-        cBody += '                                  <BASEDECALCULOCALCULADA>' + Alltrim(AlltoChar(SL2->L2_BASECOF, cPicVal)) + '</BASEDECALCULOCALCULADA> '
+        cBody += '                                  <BASEDECALCULOCALCULADA>' + Alltrim(AlltoChar(SL2->L2_BASECF2, cPicVal)) + '</BASEDECALCULOCALCULADA> '
         cBody += '                                  <EDITADO>0</EDITADO> '
         cBody += '                                  <TIPORECOLHIMENTO>1</TIPORECOLHIMENTO> '
         cBody += '                                  <CODTRBBASE>COFINS</CODTRBBASE> '
