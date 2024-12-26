@@ -292,8 +292,9 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
                         dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQry),_cAlias,.T.,.T.)
                         DBSelectArea("SF1")
                         While !(_cAlias)->(EoF())
-                            SF1->(MSSeek(xFilial("SF1")+(_cAlias)->F1_DOC+(_cAlias)->F1_SERIE+(_cAlias)->F1_FORNECE+(_cAlias)->F1_LOJA+(_cAlias)->F1_TIPO))
-                            fEnvNFeDev()
+                            If SF1->(MSSeek(xFilial("SF1")+(_cAlias)->F1_DOC+(_cAlias)->F1_SERIE+(_cAlias)->F1_FORNECE+(_cAlias)->F1_LOJA+(_cAlias)->F1_TIPO))
+                                fEnvNFeDev()
+                            EndIF 
                         (_cAlias)->(DBSkip())
                         EndDo
                         (_cAlias)->(DbCloseArea()) 
@@ -332,8 +333,9 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
                         dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQry),_cAlias,.T.,.T.)
                         DBSelectArea("SL1")
                         While !(_cAlias)->(EoF())
-                            SL1->(MSSeek(xFilial("SL1")+(_cAlias)->L1_NUM))
-                            fEnvNFeVend()
+                            If SL1->(MSSeek(xFilial("SL1")+(_cAlias)->L1_NUM))
+                                fEnvNFeVend()
+                            EndIF
                         (_cAlias)->(DBSkip())
                         EndDo
                         (_cAlias)->(DbCloseArea()) 
@@ -376,8 +378,9 @@ User Function fIntRM(pEndpoint,pMsg,pCodProd,pLocPad)
                         dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQry),_cAlias,.T.,.T.)
                         DBSelectArea("SL1")
                         While !(_cAlias)->(EoF())
-                            SL1->(MSSeek(xFilial("SL1")+(_cAlias)->L1_NUM))
-                            fEnvPedVend()
+                            If SL1->(MSSeek(xFilial("SL1")+(_cAlias)->L1_NUM))
+                                fEnvPedVend()
+                            EndIF 
                         (_cAlias)->(DBSkip())
                         EndDo
                         (_cAlias)->(DbCloseArea()) 
@@ -1474,7 +1477,7 @@ Static Function fwsFormaPagamento()
                         aAdd(aAutoCab, {"AE_XIDFORM", Alltrim(aRegXML[02][03]), Nil  })  // ID da Forma de Pag. RM
                         aAdd(aAutoCab, {"AE_XCODBAN", Alltrim(aRegXML[07][03]), Nil  })  // Codigo da bandeira no RM 
                         aAdd(aAutoCab, {"AE_XMEIOPG", Alltrim(aRegXML[09][03]), Nil  })  // Cod. do meio de Pag. RM
-                        aAdd(aAutoCab, {"AE_XMODELO", Alltrim(aRegXML[02][03]), Nil  })  // Codigo do Modelo do RM   
+                        aAdd(aAutoCab, {"AE_XMODELO", Alltrim(aRegXML[11][03]), Nil  })  // Codigo do Modelo do RM   
 
                         IF FWMVCRotAuto(oModel, "SAE", nOpc , {{"SAEMASTER", aAutoCab}, {"MENDETAIL", aAutoItens}},,.T.)
                             lOk := .T.
@@ -1495,7 +1498,7 @@ Static Function fwsFormaPagamento()
                             SAE->AE_XIDFORM := Alltrim(aRegXML[02][03])  // ID da Forma de Pag. RM
                             SAE->AE_XCODBAN := Alltrim(aRegXML[07][03])  // Codigo da bandeira no RM 
                             SAE->AE_XMEIOPG := Alltrim(aRegXML[09][03])  // Cod. do meio de Pag. RM
-                            SAE->AE_XMODELO := Alltrim(aRegXML[02][03])  // Codigo do Modelo do RM 
+                            SAE->AE_XMODELO := Alltrim(aRegXML[11][03])  // Codigo do Modelo do RM 
                         SAE->(MsUnlock())
                         lOk := .T.
                     EndIF
