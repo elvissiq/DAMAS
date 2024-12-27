@@ -27,6 +27,8 @@ User Function INTTSTRM()
                         "wsFormaPagamento",;
                         "wsFpagtoCaixa",;
                         "MovMovimentoTBCData",;
+                        "MovMovimentoPedido",;
+                        "MovMovCopiaReferenciaData",;
                         "FisNFeInutilizarData"}
     Local cSelec := ""
 

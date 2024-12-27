@@ -53,11 +53,11 @@ User Function DSOAPF01(pEndpoint,pCodProd,pLocPad)
         
         u_fIntRM('wsFpagtoCaixa',.F.)
 
-        u_fIntRM('MovMovCopiaReferenciaData',.F.)
+        //u_fIntRM('MovMovCopiaReferenciaData',.F.)
 
-        u_fIntRM('MovMovimentoTBCData',.F.)
+        //u_fIntRM('MovMovimentoTBCData',.F.)
 
-        u_fIntRM('MovMovimentoPedido',.F.)
+        //u_fIntRM('MovMovimentoPedido',.F.)
 
         u_fIntRM('FisNFeInutilizarData',.F.)
     Else
