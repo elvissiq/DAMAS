@@ -1014,7 +1014,7 @@ Static Function fwsTabPreco()
                             
                             u_fnGrvLog(cEndPoint,cBody,'',cErro,"Erro Tabela de Preco: " + StrZero(Val(aRegXML[02][03]), FWTamSX3("DA0_CODTAB")[1]) + " - " +aRegXML[07][03],cValToChar(nOpc),"Integracao Tabela de Preco")
                         Else
-                            u_fnGrvLog(cEndPoint,cBody,'',,"Tabela de Preco: " + StrZero(Val(aRegXML[02][03]), FWTamSX3("DA0_CODTAB")[1]) + " - " +aRegXML[07][03],cValToChar(nOpc),"Integracao Tabela de Preco")
+                            u_fnGrvLog(cEndPoint,cBody,'Registro '+IIF(nOpc==3,"incluido","alterado")+" com sucesso.",,"Tabela de Preco: " + StrZero(Val(aRegXML[02][03]), FWTamSX3("DA0_CODTAB")[1]) + " - " +aRegXML[07][03],cValToChar(nOpc),"Integracao Tabela de Preco")
                         EndIf
 
                     EndIF 
